@@ -1,0 +1,3662 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "TexScan",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/inspect": {
+      "post": {
+        "tags": [
+          "inspect"
+        ],
+        "summary": "Inspect",
+        "description": "Run the pipeline, store the original and every stage image, and return the full result.",
+        "operationId": "inspect_inspect_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_inspect_inspect_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InspectionOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/inspect/batch": {
+      "post": {
+        "tags": [
+          "inspect"
+        ],
+        "summary": "Inspect Batch",
+        "description": "Queue images for processing. Unreadable files are listed in `rejected`; follow progress on /ws/batch/{id}.",
+        "operationId": "inspect_batch_inspect_batch_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_inspect_batch_inspect_batch_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BatchAccepted"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/inspect/batch/{batch_id}": {
+      "get": {
+        "tags": [
+          "inspect"
+        ],
+        "summary": "Batch Status",
+        "operationId": "batch_status_inspect_batch__batch_id__get",
+        "parameters": [
+          {
+            "name": "batch_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Batch Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BatchStatus"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/inspections": {
+      "get": {
+        "tags": [
+          "inspections"
+        ],
+        "summary": "List Inspections",
+        "description": "Newest first. Filters combine with AND.",
+        "operationId": "list_inspections_inspections_get",
+        "parameters": [
+          {
+            "name": "decision",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "PASS",
+                    "FAIL"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Decision"
+            }
+          },
+          {
+            "name": "profile_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Profile Id"
+            }
+          },
+          {
+            "name": "method",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "exact method name",
+              "title": "Method"
+            },
+            "description": "exact method name"
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 200
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "case-insensitive filename search",
+              "title": "Q"
+            },
+            "description": "case-insensitive filename search"
+          },
+          {
+            "name": "batch_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Batch Id"
+            }
+          },
+          {
+            "name": "date_from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "inclusive, YYYY-MM-DD (UTC)",
+              "title": "Date From"
+            },
+            "description": "inclusive, YYYY-MM-DD (UTC)"
+          },
+          {
+            "name": "date_to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "inclusive, YYYY-MM-DD (UTC)",
+              "title": "Date To"
+            },
+            "description": "inclusive, YYYY-MM-DD (UTC)"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 20,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InspectionPage"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/inspections/{inspection_id}": {
+      "get": {
+        "tags": [
+          "inspections"
+        ],
+        "summary": "Get Inspection",
+        "operationId": "get_inspection_inspections__inspection_id__get",
+        "parameters": [
+          {
+            "name": "inspection_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Inspection Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InspectionOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "inspections"
+        ],
+        "summary": "Delete Inspection",
+        "operationId": "delete_inspection_inspections__inspection_id__delete",
+        "parameters": [
+          {
+            "name": "inspection_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Inspection Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/inspections/{inspection_id}/bit-planes": {
+      "get": {
+        "tags": [
+          "inspections"
+        ],
+        "summary": "Get Bit Planes",
+        "description": "The eight bit planes of the inspection's grayscale image, most significant first (a syllabus view, not used by detection).",
+        "operationId": "get_bit_planes_inspections__inspection_id__bit_planes_get",
+        "parameters": [
+          {
+            "name": "inspection_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Inspection Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BitPlanesOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/profiles/autotune": {
+      "post": {
+        "tags": [
+          "profiles"
+        ],
+        "summary": "Autotune",
+        "description": "Tune thresholds on good images and store them as a named profile (re-using a name replaces that profile).",
+        "operationId": "autotune_profiles_autotune_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_autotune_profiles_autotune_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/profiles": {
+      "get": {
+        "tags": [
+          "profiles"
+        ],
+        "summary": "Get Profiles",
+        "operationId": "get_profiles_profiles_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ProfileOut"
+                  },
+                  "type": "array",
+                  "title": "Response Get Profiles Profiles Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/profiles/{profile_id}": {
+      "get": {
+        "tags": [
+          "profiles"
+        ],
+        "summary": "Get Profile",
+        "operationId": "get_profile_profiles__profile_id__get",
+        "parameters": [
+          {
+            "name": "profile_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Profile Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "profiles"
+        ],
+        "summary": "Delete Profile",
+        "description": "Inspections made with the profile are kept; their profile_id becomes null.",
+        "operationId": "delete_profile_profiles__profile_id__delete",
+        "parameters": [
+          {
+            "name": "profile_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Profile Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/spectrum": {
+      "post": {
+        "tags": [
+          "analysis"
+        ],
+        "summary": "Spectrum",
+        "description": "Log-magnitude spectrum (DC at the centre) and the periodic peaks the FFT method would notch out.",
+        "operationId": "spectrum_spectrum_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_spectrum_spectrum_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpectrumOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/spectrum/apply": {
+      "post": {
+        "tags": [
+          "analysis"
+        ],
+        "summary": "Spectrum Apply",
+        "description": "Filter with a hand-drawn notch mask (mirrored unless symmetric=false) and/or a low/high-pass preset, then threshold the result into defects.",
+        "operationId": "spectrum_apply_spectrum_apply_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_spectrum_apply_spectrum_apply_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpectrumApplyOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/arena": {
+      "post": {
+        "tags": [
+          "analysis"
+        ],
+        "summary": "Arena",
+        "description": "Run several methods on one image with default settings and compare them (with IoU/Dice if a mask is given).",
+        "operationId": "arena_arena_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_arena_arena_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArenaOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/robustness": {
+      "post": {
+        "tags": [
+          "analysis"
+        ],
+        "summary": "Robustness",
+        "description": "Re-run the pipeline on increasingly degraded copies of the image; shows where the verdict flips.",
+        "operationId": "robustness_robustness_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_robustness_robustness_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RobustnessOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/stats": {
+      "get": {
+        "tags": [
+          "stats"
+        ],
+        "summary": "Stats",
+        "operationId": "stats_stats_get",
+        "parameters": [
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 365,
+              "minimum": 1,
+              "description": "length of inspections_per_day",
+              "default": 30,
+              "title": "Days"
+            },
+            "description": "length of inspections_per_day"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatsOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/files/{inspection_id}/{filename}": {
+      "get": {
+        "tags": [
+          "files"
+        ],
+        "summary": "Stage Image",
+        "description": "Stored stage images, e.g. /files/12/overlay.png. Only plain '<stage>.png' names are served.",
+        "operationId": "stage_image_files__inspection_id___filename__get",
+        "parameters": [
+          {
+            "name": "inspection_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Inspection Id"
+            }
+          },
+          {
+            "name": "filename",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Filename"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/datasets/mvtec": {
+      "get": {
+        "tags": [
+          "datasets"
+        ],
+        "summary": "Status",
+        "description": "Whether MVTEC_PATH points at a dataset, and which categories it has (texture categories listed first).",
+        "operationId": "status_datasets_mvtec_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MvtecStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/datasets/mvtec/samples": {
+      "get": {
+        "tags": [
+          "datasets"
+        ],
+        "summary": "Samples",
+        "description": "Test images of one category, round-robin across defect types so every type shows up.",
+        "operationId": "samples_datasets_mvtec_samples_get",
+        "parameters": [
+          {
+            "name": "category",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Category"
+            }
+          },
+          {
+            "name": "defect_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "e.g. 'good', 'color', 'hole'",
+              "title": "Defect Type"
+            },
+            "description": "e.g. 'good', 'color', 'hole'"
+          },
+          {
+            "name": "defective_only",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": true,
+              "title": "Defective Only"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 24,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MvtecSample"
+                  },
+                  "title": "Response Samples Datasets Mvtec Samples Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/datasets/mvtec/files/{category}/{defect_type}/{name}": {
+      "get": {
+        "tags": [
+          "datasets"
+        ],
+        "summary": "Sample Image",
+        "operationId": "sample_image_datasets_mvtec_files__category___defect_type___name__get",
+        "parameters": [
+          {
+            "name": "category",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Category"
+            }
+          },
+          {
+            "name": "defect_type",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Defect Type"
+            }
+          },
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Name"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/datasets/mvtec/masks/{category}/{defect_type}/{name}": {
+      "get": {
+        "tags": [
+          "datasets"
+        ],
+        "summary": "Sample Mask",
+        "description": "Ground-truth mask of a defective test image (the `<name>_mask.png` file).",
+        "operationId": "sample_mask_datasets_mvtec_masks__category___defect_type___name__get",
+        "parameters": [
+          {
+            "name": "category",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Category"
+            }
+          },
+          {
+            "name": "defect_type",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Defect Type"
+            }
+          },
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Name"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/datasets/mvtec/reference/{category}": {
+      "get": {
+        "tags": [
+          "datasets"
+        ],
+        "summary": "Reference",
+        "description": "The golden-template reference for a category: its first defect-free training image.",
+        "operationId": "reference_datasets_mvtec_reference__category__get",
+        "parameters": [
+          {
+            "name": "category",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Category"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/benchmark": {
+      "get": {
+        "tags": [
+          "benchmark"
+        ],
+        "summary": "Benchmark",
+        "description": "Per-method, per-category metrics from the last evaluation run. A missing or unreadable file is reported, not raised.",
+        "operationId": "benchmark_benchmark_get",
+        "parameters": [
+          {
+            "name": "source",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "mvtec",
+                "synthetic"
+              ],
+              "type": "string",
+              "default": "mvtec",
+              "title": "Source"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BenchmarkOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/inspections/{inspection_id}/report.pdf": {
+      "get": {
+        "tags": [
+          "reports"
+        ],
+        "summary": "Inspection Pdf",
+        "description": "A printable report of one inspection: verdict, images, defects, pipeline stages, settings and timings.",
+        "operationId": "inspection_pdf_inspections__inspection_id__report_pdf_get",
+        "parameters": [
+          {
+            "name": "inspection_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Inspection Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The report as a PDF file",
+            "content": {
+              "application/pdf": {}
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/batches/{batch_id}/report.pdf": {
+      "get": {
+        "tags": [
+          "reports"
+        ],
+        "summary": "Batch Pdf",
+        "description": "A printable report of every inspection that belongs to a batch (works after a restart: it reads the stored results).",
+        "operationId": "batch_pdf_batches__batch_id__report_pdf_get",
+        "parameters": [
+          {
+            "name": "batch_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 64,
+              "title": "Batch Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The report as a PDF file",
+            "content": {
+              "application/pdf": {}
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "summary": "Health",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Health Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ArenaMethodResult": {
+        "properties": {
+          "method": {
+            "type": "string",
+            "title": "Method"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "skipped",
+              "error"
+            ],
+            "title": "Status"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "decision": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "PASS",
+                  "FAIL"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decision"
+          },
+          "defects": {
+            "items": {
+              "$ref": "#/components/schemas/Defect"
+            },
+            "type": "array",
+            "title": "Defects",
+            "default": []
+          },
+          "defect_area_percent": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Defect Area Percent"
+          },
+          "total_ms": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Ms"
+          },
+          "overlay": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Overlay"
+          },
+          "mask": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mask"
+          },
+          "iou": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Iou"
+          },
+          "dice": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dice"
+          },
+          "precision": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Precision"
+          },
+          "recall": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recall"
+          },
+          "f1": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "F1"
+          },
+          "correct": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Correct"
+          }
+        },
+        "type": "object",
+        "required": [
+          "method",
+          "status"
+        ],
+        "title": "ArenaMethodResult"
+      },
+      "ArenaOut": {
+        "properties": {
+          "ground_truth_provided": {
+            "type": "boolean",
+            "title": "Ground Truth Provided"
+          },
+          "ground_truth_defective": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ground Truth Defective"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/ArenaMethodResult"
+            },
+            "type": "array",
+            "title": "Results"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ground_truth_provided",
+          "ground_truth_defective",
+          "results"
+        ],
+        "title": "ArenaOut"
+      },
+      "BatchAccepted": {
+        "properties": {
+          "batch_id": {
+            "type": "string",
+            "title": "Batch Id"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "rejected": {
+            "items": {
+              "$ref": "#/components/schemas/RejectedFile"
+            },
+            "type": "array",
+            "title": "Rejected"
+          },
+          "ws_url": {
+            "type": "string",
+            "title": "Ws Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "batch_id",
+          "total",
+          "rejected",
+          "ws_url"
+        ],
+        "title": "BatchAccepted"
+      },
+      "BatchStatus": {
+        "properties": {
+          "batch_id": {
+            "type": "string",
+            "title": "Batch Id"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "running",
+              "complete"
+            ],
+            "title": "Status"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "done": {
+            "type": "integer",
+            "title": "Done"
+          },
+          "inspection_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Inspection Ids"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/RejectedFile"
+            },
+            "type": "array",
+            "title": "Errors"
+          }
+        },
+        "type": "object",
+        "required": [
+          "batch_id",
+          "status",
+          "total",
+          "done",
+          "inspection_ids",
+          "errors"
+        ],
+        "title": "BatchStatus"
+      },
+      "BenchmarkMeta": {
+        "properties": {
+          "dataset": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dataset"
+          },
+          "max_side": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Side"
+          },
+          "limit": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Limit"
+          },
+          "synthetic": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Synthetic"
+          }
+        },
+        "type": "object",
+        "title": "BenchmarkMeta"
+      },
+      "BenchmarkOut": {
+        "properties": {
+          "source": {
+            "type": "string",
+            "enum": [
+              "mvtec",
+              "synthetic"
+            ],
+            "title": "Source"
+          },
+          "available": {
+            "type": "boolean",
+            "title": "Available"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "generated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated At"
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BenchmarkMeta"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "results": {
+            "additionalProperties": {
+              "additionalProperties": {
+                "$ref": "#/components/schemas/CategoryMetrics"
+              },
+              "type": "object"
+            },
+            "type": "object",
+            "title": "Results",
+            "default": {}
+          }
+        },
+        "type": "object",
+        "required": [
+          "source",
+          "available"
+        ],
+        "title": "BenchmarkOut"
+      },
+      "BitPlane": {
+        "properties": {
+          "bit": {
+            "type": "integer",
+            "title": "Bit"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "ones_percent": {
+            "type": "number",
+            "title": "Ones Percent"
+          },
+          "image": {
+            "type": "string",
+            "title": "Image"
+          }
+        },
+        "type": "object",
+        "required": [
+          "bit",
+          "label",
+          "ones_percent",
+          "image"
+        ],
+        "title": "BitPlane"
+      },
+      "BitPlanesOut": {
+        "properties": {
+          "inspection_id": {
+            "type": "integer",
+            "title": "Inspection Id"
+          },
+          "width": {
+            "type": "integer",
+            "title": "Width"
+          },
+          "height": {
+            "type": "integer",
+            "title": "Height"
+          },
+          "planes": {
+            "items": {
+              "$ref": "#/components/schemas/BitPlane"
+            },
+            "type": "array",
+            "title": "Planes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "inspection_id",
+          "width",
+          "height",
+          "planes"
+        ],
+        "title": "BitPlanesOut"
+      },
+      "Body_arena_arena_post": {
+        "properties": {
+          "image": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "Image"
+          },
+          "ground_truth": {
+            "anyOf": [
+              {
+                "type": "string",
+                "contentMediaType": "application/octet-stream"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ground Truth",
+            "description": "optional mask, white = defect"
+          },
+          "reference": {
+            "anyOf": [
+              {
+                "type": "string",
+                "contentMediaType": "application/octet-stream"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reference",
+            "description": "good image for golden_template"
+          },
+          "methods": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Methods",
+            "description": "comma list; default: all"
+          },
+          "config": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Config",
+            "description": "JSON overrides applied to every method"
+          }
+        },
+        "type": "object",
+        "required": [
+          "image"
+        ],
+        "title": "Body_arena_arena_post"
+      },
+      "Body_autotune_profiles_autotune_post": {
+        "properties": {
+          "images": {
+            "items": {
+              "type": "string",
+              "contentMediaType": "application/octet-stream"
+            },
+            "type": "array",
+            "title": "Images",
+            "description": "5-20 known-good images"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "method": {
+            "type": "string",
+            "title": "Method",
+            "description": "fft | gabor | local_statistics",
+            "default": "fft"
+          },
+          "quantile": {
+            "type": "number",
+            "exclusiveMaximum": 100.0,
+            "exclusiveMinimum": 50.0,
+            "title": "Quantile",
+            "default": 99.5
+          },
+          "config": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Config",
+            "description": "JSON base-config overrides, e.g. {\"max_side\": 512}"
+          }
+        },
+        "type": "object",
+        "required": [
+          "images",
+          "name"
+        ],
+        "title": "Body_autotune_profiles_autotune_post"
+      },
+      "Body_inspect_batch_inspect_batch_post": {
+        "properties": {
+          "images": {
+            "items": {
+              "type": "string",
+              "contentMediaType": "application/octet-stream"
+            },
+            "type": "array",
+            "title": "Images",
+            "description": "one or more images"
+          },
+          "reference": {
+            "anyOf": [
+              {
+                "type": "string",
+                "contentMediaType": "application/octet-stream"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reference"
+          },
+          "profile_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profile Id"
+          },
+          "method": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Method"
+          },
+          "config": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Config"
+          }
+        },
+        "type": "object",
+        "required": [
+          "images"
+        ],
+        "title": "Body_inspect_batch_inspect_batch_post"
+      },
+      "Body_inspect_inspect_post": {
+        "properties": {
+          "image": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "Image",
+            "description": "PNG / JPEG / BMP / TIFF / WebP"
+          },
+          "reference": {
+            "anyOf": [
+              {
+                "type": "string",
+                "contentMediaType": "application/octet-stream"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reference",
+            "description": "known-good image, only for golden_template"
+          },
+          "profile_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profile Id"
+          },
+          "method": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Method",
+            "description": "fft | gabor | golden_template | local_statistics"
+          },
+          "config": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Config",
+            "description": "JSON object with PipelineConfig overrides"
+          }
+        },
+        "type": "object",
+        "required": [
+          "image"
+        ],
+        "title": "Body_inspect_inspect_post"
+      },
+      "Body_robustness_robustness_post": {
+        "properties": {
+          "image": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "Image"
+          },
+          "reference": {
+            "anyOf": [
+              {
+                "type": "string",
+                "contentMediaType": "application/octet-stream"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reference"
+          },
+          "degradations": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Degradations",
+            "description": "comma list of ['blur', 'brightness', 'gaussian_noise', 'jpeg_quality']; default: all"
+          },
+          "levels": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Levels",
+            "description": "JSON, e.g. {\"gaussian_noise\": [0, 10, 30]}"
+          },
+          "profile_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profile Id"
+          },
+          "method": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Method"
+          },
+          "config": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Config"
+          }
+        },
+        "type": "object",
+        "required": [
+          "image"
+        ],
+        "title": "Body_robustness_robustness_post"
+      },
+      "Body_spectrum_apply_spectrum_apply_post": {
+        "properties": {
+          "image": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "Image"
+          },
+          "mask": {
+            "anyOf": [
+              {
+                "type": "string",
+                "contentMediaType": "application/octet-stream"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mask",
+            "description": "PNG the size of the spectrum; white = reject these frequencies"
+          },
+          "profile_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profile Id"
+          },
+          "config": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Config"
+          },
+          "feather": {
+            "type": "number",
+            "maximum": 20.0,
+            "minimum": 0.0,
+            "title": "Feather",
+            "default": 2.0
+          },
+          "symmetric": {
+            "type": "boolean",
+            "title": "Symmetric",
+            "description": "mirror the drawn mask through the centre",
+            "default": true
+          },
+          "filter_kind": {
+            "type": "string",
+            "enum": [
+              "none",
+              "lowpass",
+              "highpass",
+              "sharpen"
+            ],
+            "title": "Filter Kind",
+            "description": "radial preset, combined with the mask",
+            "default": "none"
+          },
+          "filter_response": {
+            "type": "string",
+            "enum": [
+              "ideal",
+              "butterworth",
+              "gaussian"
+            ],
+            "title": "Filter Response",
+            "default": "gaussian"
+          },
+          "cutoff": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Cutoff",
+            "description": "preset cutoff radius in spectrum pixels",
+            "default": 30.0
+          },
+          "order": {
+            "type": "integer",
+            "maximum": 10.0,
+            "minimum": 1.0,
+            "title": "Order",
+            "description": "Butterworth order",
+            "default": 2
+          }
+        },
+        "type": "object",
+        "required": [
+          "image"
+        ],
+        "title": "Body_spectrum_apply_spectrum_apply_post"
+      },
+      "Body_spectrum_spectrum_post": {
+        "properties": {
+          "image": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "Image"
+          },
+          "profile_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profile Id"
+          },
+          "config": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Config",
+            "description": "JSON PipelineConfig overrides (max_side, peaks.*, ...)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "image"
+        ],
+        "title": "Body_spectrum_spectrum_post"
+      },
+      "CategoryMetrics": {
+        "properties": {
+          "accuracy": {
+            "type": "number",
+            "title": "Accuracy"
+          },
+          "precision": {
+            "type": "number",
+            "title": "Precision"
+          },
+          "recall": {
+            "type": "number",
+            "title": "Recall"
+          },
+          "f1": {
+            "type": "number",
+            "title": "F1"
+          },
+          "tp": {
+            "type": "integer",
+            "title": "Tp"
+          },
+          "fp": {
+            "type": "integer",
+            "title": "Fp"
+          },
+          "tn": {
+            "type": "integer",
+            "title": "Tn"
+          },
+          "fn": {
+            "type": "integer",
+            "title": "Fn"
+          },
+          "pixel_iou": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pixel Iou"
+          },
+          "pixel_dice": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pixel Dice"
+          },
+          "n_images": {
+            "type": "integer",
+            "title": "N Images"
+          },
+          "n_defective": {
+            "type": "integer",
+            "title": "N Defective"
+          },
+          "errors": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Errors",
+            "default": []
+          },
+          "seconds_per_image": {
+            "type": "number",
+            "title": "Seconds Per Image"
+          }
+        },
+        "type": "object",
+        "required": [
+          "accuracy",
+          "precision",
+          "recall",
+          "f1",
+          "tp",
+          "fp",
+          "tn",
+          "fn",
+          "n_images",
+          "n_defective",
+          "seconds_per_image"
+        ],
+        "title": "CategoryMetrics",
+        "description": "Metrics of one method on one category, as written by `python -m texscan.eval`."
+      },
+      "DayCount": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "passed": {
+            "type": "integer",
+            "title": "Passed"
+          },
+          "failed": {
+            "type": "integer",
+            "title": "Failed"
+          }
+        },
+        "type": "object",
+        "required": [
+          "date",
+          "total",
+          "passed",
+          "failed"
+        ],
+        "title": "DayCount"
+      },
+      "Defect": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "bbox": {
+            "prefixItems": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "type": "array",
+            "maxItems": 4,
+            "minItems": 4,
+            "title": "Bbox"
+          },
+          "area": {
+            "type": "integer",
+            "title": "Area"
+          },
+          "centroid": {
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "type": "array",
+            "maxItems": 2,
+            "minItems": 2,
+            "title": "Centroid"
+          },
+          "perimeter": {
+            "type": "number",
+            "title": "Perimeter"
+          },
+          "aspect_ratio": {
+            "type": "number",
+            "title": "Aspect Ratio"
+          },
+          "solidity": {
+            "type": "number",
+            "title": "Solidity"
+          },
+          "orientation_deg": {
+            "type": "number",
+            "title": "Orientation Deg"
+          },
+          "contrast": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contrast"
+          },
+          "defect_type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "hole",
+                  "tear_line",
+                  "stain",
+                  "thread_fiber",
+                  "unknown"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Defect Type"
+          },
+          "type_confidence": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type Confidence"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "bbox",
+          "area",
+          "centroid",
+          "perimeter",
+          "aspect_ratio",
+          "solidity",
+          "orientation_deg"
+        ],
+        "title": "Defect",
+        "description": "One connected defect region. Coordinates are in pixels of the normalized image."
+      },
+      "DenoiseConfig": {
+        "properties": {
+          "method": {
+            "type": "string",
+            "enum": [
+              "median",
+              "gaussian",
+              "none"
+            ],
+            "title": "Method",
+            "default": "median"
+          },
+          "ksize": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Ksize",
+            "default": 5
+          }
+        },
+        "type": "object",
+        "title": "DenoiseConfig"
+      },
+      "EnhanceConfig": {
+        "properties": {
+          "method": {
+            "type": "string",
+            "enum": [
+              "clahe",
+              "hist_eq",
+              "none"
+            ],
+            "title": "Method",
+            "default": "clahe"
+          },
+          "clip_limit": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Clip Limit",
+            "default": 2.0
+          },
+          "tile_grid": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Tile Grid",
+            "default": 8
+          }
+        },
+        "type": "object",
+        "title": "EnhanceConfig"
+      },
+      "GaborConfig": {
+        "properties": {
+          "orientations": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Orientations",
+            "default": 4
+          },
+          "wavelengths": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array",
+            "title": "Wavelengths",
+            "default": [
+              4.0,
+              8.0,
+              16.0
+            ]
+          },
+          "smooth_sigma": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Smooth Sigma",
+            "default": 4.0
+          },
+          "k": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "K",
+            "default": 10.0
+          },
+          "rel_floor": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Rel Floor",
+            "default": 0.05
+          }
+        },
+        "type": "object",
+        "title": "GaborConfig"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "InspectionMetrics": {
+        "properties": {
+          "defect_count": {
+            "type": "integer",
+            "title": "Defect Count"
+          },
+          "defect_area_percent": {
+            "type": "number",
+            "title": "Defect Area Percent"
+          },
+          "largest_defect_area": {
+            "type": "integer",
+            "title": "Largest Defect Area"
+          },
+          "total_ms": {
+            "type": "number",
+            "title": "Total Ms"
+          },
+          "image_width": {
+            "type": "integer",
+            "title": "Image Width"
+          },
+          "image_height": {
+            "type": "integer",
+            "title": "Image Height"
+          }
+        },
+        "type": "object",
+        "required": [
+          "defect_count",
+          "defect_area_percent",
+          "largest_defect_area",
+          "total_ms",
+          "image_width",
+          "image_height"
+        ],
+        "title": "InspectionMetrics"
+      },
+      "InspectionOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "filename": {
+            "type": "string",
+            "title": "Filename"
+          },
+          "method": {
+            "type": "string",
+            "title": "Method"
+          },
+          "profile_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profile Id"
+          },
+          "batch_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Batch Id"
+          },
+          "decision": {
+            "type": "string",
+            "enum": [
+              "PASS",
+              "FAIL"
+            ],
+            "title": "Decision"
+          },
+          "defects": {
+            "items": {
+              "$ref": "#/components/schemas/Defect"
+            },
+            "type": "array",
+            "title": "Defects"
+          },
+          "metrics": {
+            "$ref": "#/components/schemas/InspectionMetrics"
+          },
+          "timings_ms": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "Timings Ms"
+          },
+          "stage_urls": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Stage Urls"
+          },
+          "histograms": {
+            "additionalProperties": {
+              "items": {
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            "type": "object",
+            "title": "Histograms"
+          },
+          "config": {
+            "$ref": "#/components/schemas/PipelineConfig"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "created_at",
+          "filename",
+          "method",
+          "profile_id",
+          "batch_id",
+          "decision",
+          "defects",
+          "metrics",
+          "timings_ms",
+          "stage_urls",
+          "histograms",
+          "config"
+        ],
+        "title": "InspectionOut"
+      },
+      "InspectionPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/InspectionSummary"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "InspectionPage"
+      },
+      "InspectionSummary": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "filename": {
+            "type": "string",
+            "title": "Filename"
+          },
+          "method": {
+            "type": "string",
+            "title": "Method"
+          },
+          "profile_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profile Id"
+          },
+          "batch_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Batch Id"
+          },
+          "decision": {
+            "type": "string",
+            "enum": [
+              "PASS",
+              "FAIL"
+            ],
+            "title": "Decision"
+          },
+          "defect_count": {
+            "type": "integer",
+            "title": "Defect Count"
+          },
+          "defect_area_percent": {
+            "type": "number",
+            "title": "Defect Area Percent"
+          },
+          "thumbnail_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Thumbnail Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "created_at",
+          "filename",
+          "method",
+          "profile_id",
+          "decision",
+          "defect_count",
+          "defect_area_percent",
+          "thumbnail_url"
+        ],
+        "title": "InspectionSummary"
+      },
+      "LocalStatsConfig": {
+        "properties": {
+          "window": {
+            "type": "integer",
+            "minimum": 3.0,
+            "title": "Window",
+            "default": 31
+          },
+          "k": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "K",
+            "default": 4.0
+          },
+          "rel_floor": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Rel Floor",
+            "default": 0.05
+          }
+        },
+        "type": "object",
+        "title": "LocalStatsConfig"
+      },
+      "MorphConfig": {
+        "properties": {
+          "kernel_size": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Kernel Size",
+            "default": 3
+          },
+          "min_area": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Min Area",
+            "default": 50
+          }
+        },
+        "type": "object",
+        "title": "MorphConfig"
+      },
+      "MvtecCategory": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "test_images": {
+            "type": "integer",
+            "title": "Test Images"
+          },
+          "defect_types": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Defect Types"
+          },
+          "has_masks": {
+            "type": "boolean",
+            "title": "Has Masks"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "test_images",
+          "defect_types",
+          "has_masks"
+        ],
+        "title": "MvtecCategory"
+      },
+      "MvtecSample": {
+        "properties": {
+          "category": {
+            "type": "string",
+            "title": "Category"
+          },
+          "defect_type": {
+            "type": "string",
+            "title": "Defect Type"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "has_mask": {
+            "type": "boolean",
+            "title": "Has Mask"
+          }
+        },
+        "type": "object",
+        "required": [
+          "category",
+          "defect_type",
+          "name",
+          "has_mask"
+        ],
+        "title": "MvtecSample"
+      },
+      "MvtecStatus": {
+        "properties": {
+          "available": {
+            "type": "boolean",
+            "title": "Available"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "categories": {
+            "items": {
+              "$ref": "#/components/schemas/MvtecCategory"
+            },
+            "type": "array",
+            "title": "Categories",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "available"
+        ],
+        "title": "MvtecStatus"
+      },
+      "NotchConfig": {
+        "properties": {
+          "sigma": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Sigma",
+            "default": 3.0
+          }
+        },
+        "type": "object",
+        "title": "NotchConfig"
+      },
+      "Peak": {
+        "properties": {
+          "row": {
+            "type": "integer",
+            "title": "Row"
+          },
+          "col": {
+            "type": "integer",
+            "title": "Col"
+          },
+          "x": {
+            "type": "integer",
+            "title": "X"
+          },
+          "y": {
+            "type": "integer",
+            "title": "Y"
+          }
+        },
+        "type": "object",
+        "required": [
+          "row",
+          "col",
+          "x",
+          "y"
+        ],
+        "title": "Peak"
+      },
+      "PeakConfig": {
+        "properties": {
+          "dc_radius": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Dc Radius",
+            "default": 10
+          },
+          "threshold_sigma": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Threshold Sigma",
+            "default": 5.0
+          },
+          "neighborhood": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Neighborhood",
+            "default": 9
+          },
+          "max_peaks": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Max Peaks",
+            "default": 32
+          }
+        },
+        "type": "object",
+        "title": "PeakConfig"
+      },
+      "PipelineConfig": {
+        "properties": {
+          "method": {
+            "type": "string",
+            "enum": [
+              "fft",
+              "gabor",
+              "golden_template",
+              "local_statistics"
+            ],
+            "title": "Method",
+            "default": "fft"
+          },
+          "max_side": {
+            "type": "integer",
+            "minimum": 16.0,
+            "title": "Max Side",
+            "default": 1024
+          },
+          "gabor": {
+            "$ref": "#/components/schemas/GaborConfig",
+            "default": {
+              "orientations": 4,
+              "wavelengths": [
+                4.0,
+                8.0,
+                16.0
+              ],
+              "smooth_sigma": 4.0,
+              "k": 10.0,
+              "rel_floor": 0.05
+            }
+          },
+          "template": {
+            "$ref": "#/components/schemas/TemplateConfig",
+            "default": {
+              "max_features": 2000,
+              "ransac_threshold": 3.0,
+              "min_inliers": 15
+            }
+          },
+          "local_stats": {
+            "$ref": "#/components/schemas/LocalStatsConfig",
+            "default": {
+              "window": 31,
+              "k": 4.0,
+              "rel_floor": 0.05
+            }
+          },
+          "denoise": {
+            "$ref": "#/components/schemas/DenoiseConfig",
+            "default": {
+              "method": "median",
+              "ksize": 5
+            }
+          },
+          "enhance": {
+            "$ref": "#/components/schemas/EnhanceConfig",
+            "default": {
+              "method": "clahe",
+              "clip_limit": 2.0,
+              "tile_grid": 8
+            }
+          },
+          "peaks": {
+            "$ref": "#/components/schemas/PeakConfig",
+            "default": {
+              "dc_radius": 10.0,
+              "threshold_sigma": 5.0,
+              "neighborhood": 9,
+              "max_peaks": 32
+            }
+          },
+          "notch": {
+            "$ref": "#/components/schemas/NotchConfig",
+            "default": {
+              "sigma": 3.0
+            }
+          },
+          "threshold": {
+            "$ref": "#/components/schemas/ThresholdConfig",
+            "default": {
+              "method": "otsu",
+              "sigma": 2.0,
+              "min_threshold": 12.0,
+              "block_size": 51,
+              "offset": 8.0,
+              "border": 8
+            }
+          },
+          "morphology": {
+            "$ref": "#/components/schemas/MorphConfig",
+            "default": {
+              "kernel_size": 3,
+              "min_area": 50
+            }
+          },
+          "max_defects": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Max Defects",
+            "default": 0
+          },
+          "max_area_percent": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Max Area Percent",
+            "default": 0.0
+          }
+        },
+        "type": "object",
+        "title": "PipelineConfig",
+        "description": "FAIL when defect count > max_defects or defect area % > max_area_percent.\n\nmethod picks the detector: fft | gabor | golden_template | local_statistics."
+      },
+      "ProfileOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "method": {
+            "type": "string",
+            "title": "Method"
+          },
+          "config": {
+            "$ref": "#/components/schemas/PipelineConfig"
+          },
+          "report": {
+            "$ref": "#/components/schemas/TuneReport"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "method",
+          "config",
+          "report",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "ProfileOut"
+      },
+      "ProfileStat": {
+        "properties": {
+          "profile_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profile Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "passed": {
+            "type": "integer",
+            "title": "Passed"
+          },
+          "pass_rate": {
+            "type": "number",
+            "title": "Pass Rate"
+          }
+        },
+        "type": "object",
+        "required": [
+          "profile_id",
+          "name",
+          "total",
+          "passed",
+          "pass_rate"
+        ],
+        "title": "ProfileStat"
+      },
+      "RejectedFile": {
+        "properties": {
+          "filename": {
+            "type": "string",
+            "title": "Filename"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "filename",
+          "reason"
+        ],
+        "title": "RejectedFile"
+      },
+      "RobustnessOut": {
+        "properties": {
+          "method": {
+            "type": "string",
+            "title": "Method"
+          },
+          "raw_bytes": {
+            "type": "integer",
+            "title": "Raw Bytes"
+          },
+          "original_thumbnail": {
+            "type": "string",
+            "title": "Original Thumbnail"
+          },
+          "series": {
+            "additionalProperties": {
+              "items": {
+                "$ref": "#/components/schemas/RobustnessPoint"
+              },
+              "type": "array"
+            },
+            "type": "object",
+            "title": "Series"
+          },
+          "parameters": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Parameters"
+          }
+        },
+        "type": "object",
+        "required": [
+          "method",
+          "raw_bytes",
+          "original_thumbnail",
+          "series",
+          "parameters"
+        ],
+        "title": "RobustnessOut"
+      },
+      "RobustnessPoint": {
+        "properties": {
+          "level": {
+            "type": "number",
+            "title": "Level"
+          },
+          "decision": {
+            "type": "string",
+            "enum": [
+              "PASS",
+              "FAIL"
+            ],
+            "title": "Decision"
+          },
+          "defect_count": {
+            "type": "integer",
+            "title": "Defect Count"
+          },
+          "defect_area_percent": {
+            "type": "number",
+            "title": "Defect Area Percent"
+          },
+          "psnr": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Psnr"
+          },
+          "ssim": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ssim"
+          },
+          "file_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Bytes"
+          },
+          "thumbnail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Thumbnail"
+          }
+        },
+        "type": "object",
+        "required": [
+          "level",
+          "decision",
+          "defect_count",
+          "defect_area_percent"
+        ],
+        "title": "RobustnessPoint"
+      },
+      "ScoreHistogram": {
+        "properties": {
+          "edges": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array",
+            "title": "Edges"
+          },
+          "counts": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Counts"
+          },
+          "clipped": {
+            "type": "boolean",
+            "title": "Clipped"
+          }
+        },
+        "type": "object",
+        "required": [
+          "edges",
+          "counts",
+          "clipped"
+        ],
+        "title": "ScoreHistogram",
+        "description": "Distribution of the good images' scores. Values above the last edge are counted in the last bin."
+      },
+      "SpectrumApplyOut": {
+        "properties": {
+          "decision": {
+            "type": "string",
+            "enum": [
+              "PASS",
+              "FAIL"
+            ],
+            "title": "Decision"
+          },
+          "defects": {
+            "items": {
+              "$ref": "#/components/schemas/Defect"
+            },
+            "type": "array",
+            "title": "Defects"
+          },
+          "defect_area_percent": {
+            "type": "number",
+            "title": "Defect Area Percent"
+          },
+          "residual": {
+            "type": "string",
+            "title": "Residual"
+          },
+          "mask": {
+            "type": "string",
+            "title": "Mask"
+          },
+          "overlay": {
+            "type": "string",
+            "title": "Overlay"
+          }
+        },
+        "type": "object",
+        "required": [
+          "decision",
+          "defects",
+          "defect_area_percent",
+          "residual",
+          "mask",
+          "overlay"
+        ],
+        "title": "SpectrumApplyOut"
+      },
+      "SpectrumOut": {
+        "properties": {
+          "width": {
+            "type": "integer",
+            "title": "Width"
+          },
+          "height": {
+            "type": "integer",
+            "title": "Height"
+          },
+          "spectrum": {
+            "type": "string",
+            "title": "Spectrum"
+          },
+          "spectrum_peaks": {
+            "type": "string",
+            "title": "Spectrum Peaks"
+          },
+          "peaks": {
+            "items": {
+              "$ref": "#/components/schemas/Peak"
+            },
+            "type": "array",
+            "title": "Peaks"
+          }
+        },
+        "type": "object",
+        "required": [
+          "width",
+          "height",
+          "spectrum",
+          "spectrum_peaks",
+          "peaks"
+        ],
+        "title": "SpectrumOut"
+      },
+      "StatsOut": {
+        "properties": {
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "passed": {
+            "type": "integer",
+            "title": "Passed"
+          },
+          "failed": {
+            "type": "integer",
+            "title": "Failed"
+          },
+          "pass_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pass Rate"
+          },
+          "defects_by_type": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Defects By Type"
+          },
+          "inspections_per_day": {
+            "items": {
+              "$ref": "#/components/schemas/DayCount"
+            },
+            "type": "array",
+            "title": "Inspections Per Day"
+          },
+          "avg_processing_ms": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avg Processing Ms"
+          },
+          "by_profile": {
+            "items": {
+              "$ref": "#/components/schemas/ProfileStat"
+            },
+            "type": "array",
+            "title": "By Profile",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "total",
+          "passed",
+          "failed",
+          "pass_rate",
+          "defects_by_type",
+          "inspections_per_day"
+        ],
+        "title": "StatsOut"
+      },
+      "TemplateConfig": {
+        "properties": {
+          "max_features": {
+            "type": "integer",
+            "minimum": 10.0,
+            "title": "Max Features",
+            "default": 2000
+          },
+          "ransac_threshold": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Ransac Threshold",
+            "default": 3.0
+          },
+          "min_inliers": {
+            "type": "integer",
+            "minimum": 4.0,
+            "title": "Min Inliers",
+            "default": 15
+          }
+        },
+        "type": "object",
+        "title": "TemplateConfig"
+      },
+      "ThresholdConfig": {
+        "properties": {
+          "method": {
+            "type": "string",
+            "enum": [
+              "otsu",
+              "adaptive"
+            ],
+            "title": "Method",
+            "default": "otsu"
+          },
+          "sigma": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Sigma",
+            "default": 2.0
+          },
+          "min_threshold": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Min Threshold",
+            "default": 12.0
+          },
+          "block_size": {
+            "type": "integer",
+            "minimum": 3.0,
+            "title": "Block Size",
+            "default": 51
+          },
+          "offset": {
+            "type": "number",
+            "title": "Offset",
+            "default": 8.0
+          },
+          "border": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Border",
+            "default": 8
+          }
+        },
+        "type": "object",
+        "title": "ThresholdConfig"
+      },
+      "TuneReport": {
+        "properties": {
+          "method": {
+            "type": "string",
+            "title": "Method"
+          },
+          "threshold_param": {
+            "type": "string",
+            "title": "Threshold Param"
+          },
+          "threshold": {
+            "type": "number",
+            "title": "Threshold"
+          },
+          "quantile": {
+            "type": "number",
+            "title": "Quantile"
+          },
+          "score_percentiles": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "Score Percentiles"
+          },
+          "min_area": {
+            "type": "integer",
+            "title": "Min Area"
+          },
+          "fp_component_count": {
+            "type": "integer",
+            "title": "Fp Component Count"
+          },
+          "fp_max_area": {
+            "type": "integer",
+            "title": "Fp Max Area"
+          },
+          "loo_pass_rate": {
+            "type": "number",
+            "title": "Loo Pass Rate"
+          },
+          "n_images": {
+            "type": "integer",
+            "title": "N Images"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings",
+            "default": []
+          },
+          "score_histogram": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ScoreHistogram"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "method",
+          "threshold_param",
+          "threshold",
+          "quantile",
+          "score_percentiles",
+          "min_area",
+          "fp_component_count",
+          "fp_max_area",
+          "loo_pass_rate",
+          "n_images"
+        ],
+        "title": "TuneReport"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}

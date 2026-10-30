@@ -1,0 +1,18 @@
+# python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+*.egg-info/
+backend/*.db
+# node
+node_modules/
+frontend/dist/
+# data: keep only samples/
+data/*
+!data/samples/
+!data/.gitkeep
+# misc
+.env
+.DS_Store
+*.tsbuildinfo

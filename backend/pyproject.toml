@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "texscan"
+version = "0.1.0"
+requires-python = ">=3.11,<3.12"
+dependencies = [
+  "fastapi>=0.115",
+  "uvicorn[standard]>=0.30",
+  "python-multipart>=0.0.9",
+  "numpy>=1.26",
+  "pydantic>=2.5",
+  "scipy>=1.11",
+  "scikit-image>=0.22",
+  "opencv-python-headless>=4.9",
+  "sqlmodel>=0.0.21",
+  "reportlab>=4.0",
+  "sqlalchemy>=2.0,<2.1",  # 2.1 Cython ext is blocked by some Windows app-control policies
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "httpx>=0.27"]
+
+[tool.setuptools.packages.find]
+include = ["texscan*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
