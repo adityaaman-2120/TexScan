@@ -3,6 +3,7 @@ from typing import Literal
 
 import numpy as np
 
+from texscan.pipeline.borders import center_crop, trim_borders
 from texscan.pipeline.classify import classify_defects
 from texscan.pipeline.config import PipelineConfig
 from texscan.pipeline.defects import extract_defects
@@ -26,6 +27,7 @@ class PipelineResult:
     histograms: dict[str, Histogram]
     peaks: Peaks  # (N, 2); empty unless method == "fft"
     score_map: FloatImage  # continuous anomaly score before thresholding (used by auto-tune)
+    crop: tuple[int, int, int, int] = (0, 0, 0, 0)  # (x0, y0, x1, y1) of the input that was inspected; zeros = whole image (not trimmed)
 
 
 def decide(defects: list[Defect], defect_area_percent: float, cfg: PipelineConfig) -> Literal["PASS", "FAIL"]:
@@ -46,6 +48,18 @@ def _prepare_reference(reference: Image, cfg: PipelineConfig) -> Image:
     return enhance(denoise(gray, **cfg.denoise.model_dump()), **cfg.enhance.model_dump())[0]
 
 
+def _crop_input(rec: Recorder, image: Image, cfg: PipelineConfig) -> tuple[Image, tuple[int, int, int, int]]:
+    """Optional trimming of black bars, then of everything outside the centre. The box is in the coordinates of the input."""
+    h, w = image.shape[:2]
+    x0, y0, x1, y1 = 0, 0, w, h
+    if cfg.trim_borders:
+        image, (x0, y0, x1, y1) = rec.step("trim_borders", trim_borders, image)
+    if cfg.center_fraction < 1.0:
+        image, (dx0, dy0, dx1, dy1) = rec.step("center_crop", center_crop, image, cfg.center_fraction)
+        x0, y0, x1, y1 = x0 + dx0, y0 + dy0, x0 + dx1, y0 + dy1
+    return image, ((x0, y0, x1, y1) if (x0, y0, x1, y1) != (0, 0, w, h) else (0, 0, 0, 0))
+
+
 def run_pipeline(
     image: Image, config: PipelineConfig | None = None, reference: Image | None = None
 ) -> PipelineResult:
@@ -55,6 +69,7 @@ def run_pipeline(
     """
     cfg = config or PipelineConfig()
     rec = Recorder()
+    image, crop = _crop_input(rec, image, cfg)
     gray = rec.step("load_and_normalize", load_and_normalize, image, cfg.max_side)
     original = resize_longest(image, cfg.max_side)
     rec.stages.update(original=original, gray=gray)
@@ -76,4 +91,5 @@ def run_pipeline(
         histograms=histograms,
         peaks=detection.peaks,
         score_map=detection.score,
+        crop=crop,
     )

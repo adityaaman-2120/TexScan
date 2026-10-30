@@ -536,3 +536,25 @@ def test_bit_planes_endpoint(client: TestClient, defective: np.ndarray) -> None:
 
 def test_bit_planes_404s(client: TestClient) -> None:
     assert client.get("/inspections/999/bit-planes").status_code == 404
+
+
+def test_live_trims_black_bars_and_reports_where_the_picture_is(client: TestClient, clean: np.ndarray) -> None:
+    from texscan.api.routers.live import _live_config, process_frame
+
+    framed = np.hstack([np.zeros((clean.shape[0], 100, 3), np.uint8), np.dstack([clean[:, :200]] * 3), np.zeros((clean.shape[0], 100, 3), np.uint8)])
+    cfg = _live_config("fft", None, 256)
+    assert cfg.trim_borders
+    out = process_frame(png(framed), cfg)
+    assert out["type"] == "result" and out["decision"] == "PASS"
+    x, y, w, h = out["region"]
+    assert (x, y, w, h) == (0.25, 0.0, 0.5, 1.0)
+    plain = process_frame(png(np.dstack([clean] * 3)), cfg)
+    assert plain["region"] == [0.0, 0.0, 1.0, 1.0]
+
+
+def test_live_config_takes_the_centre_option_and_always_trims() -> None:
+    from texscan.api.routers.live import _live_config
+
+    cfg = _live_config("gabor", None, None, 0.6)
+    assert cfg.center_fraction == 0.6 and cfg.trim_borders and cfg.max_side == 320
+    assert _live_config("gabor", None, 480).center_fraction == 1.0

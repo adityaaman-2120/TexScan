@@ -83,5 +83,7 @@ class PipelineConfig(BaseModel):
     notch: NotchConfig = NotchConfig()
     threshold: ThresholdConfig = ThresholdConfig()
     morphology: MorphConfig = MorphConfig()
+    trim_borders: bool = False  # crop black letterbox / pillarbox bars first (live camera frames); off for ordinary photos
+    center_fraction: float = Field(1.0, gt=0.1, le=1.0)  # inspect only the middle part of the image (after trimming), to skip object edges
     max_defects: int = Field(0, ge=0)
     max_area_percent: float = Field(0.0, ge=0)

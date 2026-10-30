@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { checkSupport, describeCameraError } from "./cameraErrors";
-import { backoffSeconds, fitFrame, fpsFrom, isStale, liveSocketUrl, mean, scaleBox } from "./liveMath";
+import { calibrationName, CALIBRATION_FRAMES } from "./calibration";
+import { backoffSeconds, fitFrame, fpsFrom, isStale, liveSocketUrl, mean, placeBox, regionRect, scaleBox, centerFraction, CENTER_FRACTION, UPLOAD_SIDE, WHOLE_FRAME } from "./liveMath";
 
 const domError = (name: string) => new DOMException("x", name);
 
@@ -109,5 +110,60 @@ describe("liveSocketUrl", () => {
 describe("backoffSeconds", () => {
   it("doubles up to a cap", () => {
     expect([0, 1, 2, 3, 4, 9].map(backoffSeconds)).toEqual([1, 2, 4, 8, 8, 8]);
+  });
+});
+
+describe("regionRect / centerFraction", () => {
+  it("maps the server's inspected region onto the stage", () => {
+    expect(regionRect([0.25, 0, 0.5, 1], { w: 800, h: 400 })).toEqual({ x: 200, y: 0, w: 400, h: 400 });
+    expect(regionRect(WHOLE_FRAME, { w: 800, h: 400 })).toEqual({ x: 0, y: 0, w: 800, h: 400 });
+  });
+
+  it("inspects 60 % of each side for the centre area and everything for full", () => {
+    expect(centerFraction("center")).toBe(CENTER_FRACTION);
+    expect(centerFraction("full")).toBe(1);
+  });
+
+  it("asks the server for the centre only when it is not the whole picture", () => {
+    const base = { protocol: "http:", host: "h", method: "gabor", profileId: null, maxSide: 320 };
+    expect(liveSocketUrl(base)).not.toContain("center");
+    expect(liveSocketUrl({ ...base, center: 1 })).not.toContain("center");
+    expect(liveSocketUrl({ ...base, center: 0.6 })).toContain("center=0.6");
+  });
+});
+
+describe("placeBox", () => {
+  const region = { x: 100, y: 50, w: 300, h: 200 };
+
+  it("offsets and scales a box from the working image into the inspected region", () => {
+    expect(placeBox([10, 20, 30, 40], { w: 150, h: 100 }, region, 500)).toEqual({ x: 120, y: 90, w: 60, h: 80 });
+  });
+
+  it("flips about the whole stage for a mirrored preview", () => {
+    expect(placeBox([10, 20, 30, 40], { w: 150, h: 100 }, region, 500, true)).toEqual({ x: 500 - 120 - 60, y: 90, w: 60, h: 80 });
+  });
+
+  it("is the same as scaleBox when the region is the whole stage", () => {
+    const stage = { x: 0, y: 0, w: 400, h: 300 };
+    const box = [5, 6, 7, 8] as const;
+    expect(placeBox(box, { w: 200, h: 150 }, stage, 400)).toEqual(scaleBox(box, { w: 200, h: 150 }, { w: 400, h: 300 }));
+  });
+});
+
+describe("upload size", () => {
+  it("is larger than every working size, so detail survives the server-side crop", () => {
+    expect(UPLOAD_SIDE).toBeGreaterThanOrEqual(480);
+  });
+});
+
+describe("calibration", () => {
+  it("names a profile after the moment it was made", () => {
+    expect(calibrationName(new Date(2026, 9, 31, 14, 5))).toBe("Live camera 2026-10-31 14:05");
+    expect(calibrationName(new Date(2027, 0, 2, 3, 4))).toBe("Live camera 2027-01-02 03:04");
+  });
+
+  it("takes a number of frames the server accepts", () => {
+    expect(CALIBRATION_FRAMES).toBeGreaterThanOrEqual(5);
+    expect(CALIBRATION_FRAMES).toBeLessThanOrEqual(20);
   });
 });

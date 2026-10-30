@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { grabJpeg } from "./frames";
-import { backoffSeconds, fpsFrom, liveSocketUrl, MAX_RECONNECTS, mean } from "./liveMath";
+import { backoffSeconds, fpsFrom, liveSocketUrl, MAX_RECONNECTS, mean, UPLOAD_SIDE } from "./liveMath";
 
 export interface LiveDefect {
   bbox: [number, number, number, number];
@@ -11,6 +11,8 @@ export interface LiveDefect {
 /** One message from /ws/live. */
 export interface LiveResult {
   type: "result";
+  /** where in the received frame the server looked: fractions [x, y, w, h] (black bars and the outer part are skipped) */
+  region: readonly [number, number, number, number];
   width: number; // working-image size: defect boxes are in these pixels
   height: number;
   decision: "PASS" | "FAIL";
@@ -43,6 +45,8 @@ interface Options {
   method: string;
   profileId: number | null;
   sendSide: number;
+  /** inspect only the middle part of the picture (1 = all of it) */
+  center: number;
 }
 
 /**
@@ -50,7 +54,7 @@ interface Options {
  * At most one frame is in flight: the next is sent when the previous result arrives (and no sooner than 200 ms),
  * so the rate adapts to the server instead of piling frames up. Reconnects with backoff if the socket drops.
  */
-export function useLiveStream({ enabled, paused, videoRef, method, profileId, sendSide }: Options) {
+export function useLiveStream({ enabled, paused, videoRef, method, profileId, sendSide, center }: Options) {
   const [status, setStatus] = useState<LiveStatus>("idle");
   const [result, setResult] = useState<LiveResult | null>(null);
   const [resultAt, setResultAt] = useState<number | null>(null);
@@ -86,7 +90,7 @@ export function useLiveStream({ enabled, paused, videoRef, method, profileId, se
 
     const connect = () => {
       setStatus(attempt === 0 ? "connecting" : "reconnecting");
-      const sock = new WebSocket(liveSocketUrl({ protocol: location.protocol, host: location.host, method, profileId, maxSide: sendSideRef.current }));
+      const sock = new WebSocket(liveSocketUrl({ protocol: location.protocol, host: location.host, method, profileId, maxSide: sendSideRef.current, center }));
       socket.current = sock;
       sock.onopen = () => {
         attempt = 0;
@@ -128,7 +132,7 @@ export function useLiveStream({ enabled, paused, videoRef, method, profileId, se
       socket.current = null;
       inflight.current = null;
     };
-  }, [enabled, method, profileId, retryKey]);
+  }, [enabled, method, profileId, center, retryKey]);
 
   // sending
   useEffect(() => {
@@ -143,7 +147,7 @@ export function useLiveStream({ enabled, paused, videoRef, method, profileId, se
       if (inflight.current !== null && now - inflight.current < INFLIGHT_TIMEOUT_MS) return;
       grabbing.current = true;
       try {
-        const blob = await grabJpeg(video, (scratch.current ??= document.createElement("canvas")), sendSideRef.current);
+        const blob = await grabJpeg(video, (scratch.current ??= document.createElement("canvas")), UPLOAD_SIDE);
         if (blob && sock.readyState === WebSocket.OPEN) {
           sock.send(blob);
           lastSent.current = inflight.current = performance.now();

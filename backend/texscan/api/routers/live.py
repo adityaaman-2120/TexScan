@@ -15,6 +15,14 @@ from texscan.pipeline import PipelineConfig, run_pipeline
 router = APIRouter(tags=["live"])
 MIN_INTERVAL = 0.2  # seconds between processed frames -> at most 5 fps
 LIVE_MAX_SIDE = 320  # default working resolution when no profile is chosen (keeps ~5 fps feasible)
+_UNUSED = None  # default working resolution when no profile is chosen (keeps ~5 fps feasible)
+
+
+def _region(crop: tuple[int, int, int, int], frame: tuple[int, int]) -> list[float]:
+    """The inspected part of the received frame as fractions [x, y, w, h] (the whole frame unless borders were trimmed)."""
+    h, w = frame
+    x0, y0, x1, y1 = crop if crop != (0, 0, 0, 0) else (0, 0, w, h)
+    return [x0 / w, y0 / h, (x1 - x0) / w, (y1 - y0) / h]
 
 
 def process_frame(data: bytes, cfg: PipelineConfig) -> dict[str, Any]:
@@ -27,6 +35,7 @@ def process_frame(data: bytes, cfg: PipelineConfig) -> dict[str, Any]:
     height, width = result.stages["gray"].shape
     return {
         "type": "result",
+        "region": _region(result.crop, image.shape[:2]),
         "width": width,  # size the pipeline worked at: defect boxes are in these pixels
         "height": height,
         "decision": result.decision,
@@ -40,8 +49,11 @@ def process_frame(data: bytes, cfg: PipelineConfig) -> dict[str, Any]:
     }
 
 
-def _live_config(method: str, profile_id: int | None, max_side: int | None) -> PipelineConfig:
-    overrides = {"max_side": max_side} if max_side else ({} if profile_id is not None else {"max_side": LIVE_MAX_SIDE})
+def _live_config(method: str, profile_id: int | None, max_side: int | None, center: float | None = None) -> PipelineConfig:
+    overrides: dict[str, object] = {"max_side": max_side} if max_side else ({} if profile_id is not None else {"max_side": LIVE_MAX_SIDE})
+    if center is not None:
+        overrides["center_fraction"] = center
+    overrides["trim_borders"] = True  # camera frames often carry black bars (a phone relayed as a webcam), which are not a defect
     with Session(db.engine) as session:
         cfg = resolve_config(session, profile_id, method, json.dumps(overrides))
     if cfg.method == "golden_template":
@@ -50,14 +62,16 @@ def _live_config(method: str, profile_id: int | None, max_side: int | None) -> P
 
 
 @router.websocket("/ws/live")
-async def live(ws: WebSocket, method: str = "fft", profile_id: int | None = None, max_side: int | None = None) -> None:
+async def live(
+    ws: WebSocket, method: str = "fft", profile_id: int | None = None, max_side: int | None = None, center: float | None = None
+) -> None:
     """Send binary JPEG frames; get one JSON result per processed frame.
 
     Only the newest frame is processed (older ones are dropped) and at most one every 200 ms (~5 fps).
     """
     await ws.accept()
     try:
-        cfg = _live_config(method, profile_id, max_side)
+        cfg = _live_config(method, profile_id, max_side, center)
     except ApiError as exc:
         await ws.send_json({"type": "error", "message": exc.detail})
         await ws.close(code=1008)

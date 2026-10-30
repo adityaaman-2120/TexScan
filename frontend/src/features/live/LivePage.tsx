@@ -1,13 +1,13 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
-import { Camera, CameraOff, CircleCheck, CircleX, FlipHorizontal2, Loader2, Pause, Play, RefreshCw, Smartphone, SwitchCamera, TriangleAlert, Video, WifiOff } from "lucide-react";
+import { Camera, CameraOff, CircleCheck, CircleX, Crosshair, FlipHorizontal2, Loader2, Pause, Play, RefreshCw, Smartphone, SwitchCamera, TriangleAlert, Video, WifiOff } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { ProfileSelector } from "@/app/ProfileSelector";
 import { fileUrl, postForm } from "@/api/client";
 import { errorMessage } from "@/api/errors";
-import { useProfiles } from "@/api/hooks";
+import { keys, useProfiles } from "@/api/hooks";
 import { METHOD_LABELS, type InspectionOut, type Method } from "@/api/types";
 import { requireNav } from "@/app/nav";
 import { PageHeader } from "@/components/PageHeader";
@@ -19,7 +19,8 @@ import { DEFECT_LABELS, type DefectKind } from "@/features/inspect/defectLabels"
 import { cn } from "@/lib/utils";
 import { useUi } from "@/store/ui";
 import { captureFullFrame } from "./frames";
-import { isStale, scaleBox } from "./liveMath";
+import { centerFraction, isStale, placeBox, regionRect, WHOLE_FRAME, type InspectArea } from "./liveMath";
+import { useCalibrate } from "./useCalibrate";
 import { useCamera } from "./useCamera";
 import { useLiveStream } from "./useLiveStream";
 import { verdictView, type VerdictKind } from "./verdict";
@@ -27,6 +28,10 @@ import { verdictView, type VerdictKind } from "./verdict";
 const item = requireNav("/live");
 const METHODS: Method[] = ["fft", "gabor", "local_statistics"]; // golden_template needs a reference image
 const SEND_SIDES = [240, 320, 480] as const;
+const AREAS: { value: InspectArea; label: string }[] = [
+  { value: "center", label: "Middle 60%" },
+  { value: "full", label: "Whole picture" },
+];
 const MAX_BOXES = 80; // a noisy scene can produce hundreds of regions; draw the biggest
 
 const TONE: Record<VerdictKind, string> = {
@@ -61,12 +66,15 @@ export function LivePage() {
 
   const camera = useCamera(videoRef);
   const profileId = useUi((s) => s.profileId);
+  const setProfileId = useUi((s) => s.setProfileId);
   const { data: profiles } = useProfiles();
   const profile = profiles?.find((p) => p.id === profileId);
 
   const [paused, setPaused] = useState(false);
-  const [methodChoice, setMethodChoice] = useState<Method>("fft");
+  const [methodChoice, setMethodChoice] = useState<Method>("gabor"); // real cloth is rarely periodic, so FFT is a poor default for a camera
   const [sendSide, setSendSide] = useState<(typeof SEND_SIDES)[number]>(320);
+  const [area, setArea] = useState<InspectArea>("center");
+  const [frame, setFrame] = useState<{ w: number; h: number } | null>(null);
   const [mirrorPref, setMirrorPref] = useState<"auto" | "on" | "off">("auto");
   const [capturing, setCapturing] = useState(false);
   const [lastCapture, setLastCapture] = useState<InspectionOut | null>(null);
@@ -75,7 +83,9 @@ export function LivePage() {
   const cam = camera.state.status === "ready" ? camera.state : null;
   const ready = cam !== null;
   const method = (profile?.method as Method | undefined) ?? methodChoice; // a profile is tuned for one method
-  const live = useLiveStream({ enabled: ready, paused, videoRef, method, profileId, sendSide });
+  const center = centerFraction(area);
+  const live = useLiveStream({ enabled: ready, paused, videoRef, method, profileId, sendSide, center });
+  const calibration = useCalibrate({ videoRef, sendSide, method, center });
   const { result, resultAt } = live;
 
   const mirror = mirrorPref === "on" || (mirrorPref === "auto" && cam?.facing === "user");
@@ -85,6 +95,23 @@ export function LivePage() {
     const id = setInterval(() => setNow(performance.now()), 500);
     return () => clearInterval(id);
   }, []);
+
+  // the stage takes the shape of the frame the browser really decodes (a phone relayed as a webcam can differ from what the track reports)
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !ready) {
+      setFrame(null);
+      return;
+    }
+    const sync = () => setFrame(video.videoWidth > 0 ? { w: video.videoWidth, h: video.videoHeight } : null);
+    sync();
+    video.addEventListener("loadedmetadata", sync);
+    video.addEventListener("resize", sync);
+    return () => {
+      video.removeEventListener("loadedmetadata", sync);
+      video.removeEventListener("resize", sync);
+    };
+  }, [ready]);
 
   // pausing freezes the picture as well, so a capture grabs exactly what is on screen
   useEffect(() => {
@@ -118,13 +145,29 @@ export function LivePage() {
       const ctx = canvas.getContext("2d")!;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, w, h);
-      if (!result || (stale && !paused) || result.defects.length === 0) return;
+      if (!result || (stale && !paused)) return;
+      const region = regionRect(result.region ?? WHOLE_FRAME, { w, h });
+      if (region.w < w - 1 || region.h < h - 1) {
+        // dim everything the server did not look at (black bars, the outer part of the picture) and outline what it did
+        const gx = mirror ? w - region.x - region.w : region.x;
+        ctx.fillStyle = "rgba(0,0,0,0.38)";
+        ctx.beginPath();
+        ctx.rect(0, 0, w, h);
+        ctx.rect(gx, region.y, region.w, region.h);
+        ctx.fill("evenodd");
+        ctx.setLineDash([6, 4]);
+        ctx.strokeStyle = "rgba(34,211,238,0.9)";
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(gx + 0.5, region.y + 0.5, region.w - 1, region.h - 1);
+        ctx.setLineDash([]);
+      }
+      if (result.defects.length === 0) return;
       const boxes = [...result.defects].sort((a, b) => b.bbox[2] * b.bbox[3] - a.bbox[2] * a.bbox[3]).slice(0, MAX_BOXES);
       ctx.lineWidth = 2;
       ctx.font = "600 11px Inter, system-ui, sans-serif";
       ctx.textBaseline = "top";
       boxes.forEach((d, i) => {
-        const r = scaleBox(d.bbox, { w: result.width, h: result.height }, { w, h }, mirror);
+        const r = placeBox(d.bbox, { w: result.width, h: result.height }, region, w, mirror);
         ctx.strokeStyle = "#ef4444";
         ctx.shadowColor = "rgba(239,68,68,0.6)";
         ctx.shadowBlur = 6;
@@ -157,6 +200,7 @@ export function LivePage() {
       const form = new FormData();
       form.append("image", file);
       form.append("method", method);
+      form.append("config", JSON.stringify({ trim_borders: true, center_fraction: center })); // the same view as live, so the verdicts agree
       if (profileId !== null) form.append("profile_id", String(profileId));
       const out = await postForm<InspectionOut>("/inspect", form);
       setLastCapture(out);
@@ -173,8 +217,20 @@ export function LivePage() {
     }
   };
 
+  // ---- calibrate: tune a profile on a few frames of good cloth ---------------------------------------------
+  const calibrate = async () => {
+    try {
+      const made = await calibration.run();
+      await queryClient.invalidateQueries({ queryKey: keys.profiles }); // the profile list must know the new profile first, or the selector resets it
+      setProfileId(made.id);
+      toast.success("Calibrated", { description: `Learned from ${calibration.total} frames. "${made.name}" is now the active profile.` });
+    } catch (e) {
+      toast.error("Calibration failed", { description: errorMessage(e) });
+    }
+  };
+
   const failure = camera.state.status === "failed" ? camera.state.failure : null;
-  const ratio = cam ? `${cam.width} / ${cam.height}` : "16 / 9";
+  const ratio = frame ? `${frame.w} / ${frame.h}` : cam ? `${cam.width} / ${cam.height}` : "16 / 9";
   const deviceId = cam?.deviceId ?? null;
   const multiple = camera.devices.length > 1;
   const flip = () => {
@@ -224,6 +280,15 @@ export function LivePage() {
               </div>
             </CardContent>
           </Card>
+
+          {ready && !profile && (
+            <p className="flex items-start gap-2 rounded-lg border border-warning/30 bg-warning/5 px-3 py-2 text-xs leading-relaxed text-muted-foreground" role="note">
+              <TriangleAlert className="mt-0.5 size-3.5 shrink-0 text-warning" />
+              <span>
+                Not calibrated yet. Untuned settings often call real cloth defective. Fill the dashed box with good, defect-free cloth and press <strong className="text-foreground">Calibrate</strong>; move the cloth a little while it takes {calibration.total} frames.
+              </span>
+            </p>
+          )}
 
           {/* the picture */}
           <div
@@ -292,12 +357,16 @@ export function LivePage() {
                   {capturing ? <Loader2 className="animate-spin" /> : <Camera />}
                   {capturing ? "Saving…" : "Capture"}
                 </Button>
+                <Button variant="outline" onClick={() => void calibrate()} disabled={calibration.running || paused} title="Learn what good cloth looks like on this camera, then judge against that">
+                  {calibration.running ? <Loader2 className="animate-spin" /> : <Crosshair />}
+                  {calibration.running ? `Calibrating ${calibration.taken}/${calibration.total}` : "Calibrate"}
+                </Button>
                 {multiple && <Button variant="outline" size="icon" aria-label="Switch camera" title="Switch camera" onClick={flip}><SwitchCamera /></Button>}
                 <Button variant="ghost" onClick={() => { camera.stop(); setPaused(false); }}><CameraOff />Stop camera</Button>
                 {live.status === "offline" && <Button variant="outline" onClick={live.reconnect}><RefreshCw />Reconnect</Button>}
               </>
             )}
-            <span className="ml-auto text-xs text-muted-foreground">Capture saves the current frame at full resolution as a normal inspection.</span>
+            <span className="ml-auto text-xs text-muted-foreground">Capture saves the current frame at full resolution as a normal inspection, judged with the same settings.</span>
           </div>
 
           {lastCapture && (
@@ -332,9 +401,14 @@ export function LivePage() {
                 <p className="text-[11px] leading-snug text-muted-foreground">A profile sets the thresholds and working size; without one, live mode works at {sendSide} px.</p>
               </div>
               <div className="space-y-1.5">
-                <div className="text-xs font-medium">Frame size sent</div>
+                <div className="text-xs font-medium">Inspect area</div>
+                <Segmented label="Inspect area" value={area} onChange={setArea} options={AREAS} />
+                <p className="text-[11px] leading-snug text-muted-foreground">Black bars are always skipped. The middle option also ignores the outer part of the picture, where the edge of the cloth would be flagged.</p>
+              </div>
+              <div className="space-y-1.5">
+                <div className="text-xs font-medium">Working size</div>
                 <Segmented label="Frame size" value={String(sendSide)} onChange={(v) => setSendSide(Number(v) as (typeof SEND_SIDES)[number])} options={SEND_SIDES.map((s) => ({ value: String(s), label: `${s} px` }))} />
-                <p className="text-[11px] leading-snug text-muted-foreground">Smaller is faster; larger sees finer defects.</p>
+                <p className="text-[11px] leading-snug text-muted-foreground">How big the inspected picture is for the pipeline. Smaller is faster; larger sees finer defects.</p>
               </div>
               {camera.devices.length > 0 && (
                 <div className="space-y-1.5">

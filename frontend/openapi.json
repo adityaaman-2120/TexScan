@@ -3053,6 +3053,18 @@
               "min_area": 50
             }
           },
+          "trim_borders": {
+            "type": "boolean",
+            "title": "Trim Borders",
+            "default": false
+          },
+          "center_fraction": {
+            "type": "number",
+            "maximum": 1.0,
+            "exclusiveMinimum": 0.1,
+            "title": "Center Fraction",
+            "default": 1.0
+          },
           "max_defects": {
             "type": "integer",
             "minimum": 0.0,

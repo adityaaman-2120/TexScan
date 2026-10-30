@@ -1240,6 +1240,16 @@ export interface components {
              */
             morphology: components["schemas"]["MorphConfig"];
             /**
+             * Trim Borders
+             * @default false
+             */
+            trim_borders: boolean;
+            /**
+             * Center Fraction
+             * @default 1
+             */
+            center_fraction: number;
+            /**
              * Max Defects
              * @default 0
              */

@@ -110,6 +110,7 @@ The Pipeline X-Ray in the app steps through every one of these images with the e
 | Classification | hand-written rules score each type; best score above a minimum wins, with a 0 to 1 confidence | hole, tear line, stain, thread / fibre, unknown |
 | Decision | FAIL when there are more defects than `max_defects` or more defective area than `max_area_percent` | defaults: any defect fails |
 | Overlay | Canny edges of the final mask painted on the original | gradient + hysteresis |
+| Trim + centre (optional, live camera) | crop black letterbox / pillarbox bars, then keep the central part of the picture | a column or row is picture when more than 2 % of its pixels exceed a dark level |
 
 Beyond detection, the app also offers a **Bit-plane viewer** ($P_k=((I\gg k)\ \&\ 1)\cdot255$), frequency-domain **low-pass / high-pass / sharpen** presets
 (ideal, Butterworth or Gaussian), a **JPEG compression** experiment (size, ratio, PSNR, SSIM) and noise / blur / brightness stress tests.
@@ -231,7 +232,14 @@ apply low-pass / high-pass / sharpen presets (ideal, Butterworth, Gaussian); eve
 `/live` inspects a webcam stream. The browser grabs frames with `getUserMedia`, downsizes them to JPEG (240 / 320 / 480 px) and sends them over `/ws/live`;
 the server keeps only the newest frame and answers at most 5 times a second (about 4 to 5 fps in practice). Defect boxes are drawn on a canvas over the video next to a large PASS / FAIL indicator and fps / latency readouts.
 Pause freezes the video and stops sending; **Capture** saves the current frame at full camera resolution as a normal inspection. Permission denied, no camera, camera busy, an insecure page and a dropped connection each show their own message.
-Without a profile it uses the chosen method at 320 px; `golden_template` is not available live.
+Without a profile it uses the chosen method (Gabor by default) at a 320 px working size; `golden_template` is not available live.
+
+**Getting reliable results on a real camera.** The default thresholds were tuned on synthetic textures, so on real cloth an uncalibrated stream often calls good cloth defective (lighting gradients, folds, the edge of the cloth). Three things fix that:
+1. **Black bars are skipped.** A phone relayed as a webcam usually arrives as a portrait picture inside a landscape frame with black bars; the bars were being judged as one big defect. The server trims them (`trim_borders` in `backend/texscan/pipeline/borders.py`).
+2. **Inspect area: Middle 60%** (default) ignores the outer part of the picture, where the edge of the cloth would be flagged. A dashed box on the video shows what is inspected; the rest is dimmed.
+3. **Calibrate.** Fill the dashed box with good, defect-free cloth and press **Calibrate**: 12 frames are taken over about 4 seconds (move the cloth slightly), the server tunes a threshold and minimum area on them, and the new profile becomes active. Judge against that from then on. Calibrate again if the lighting or the cloth changes.
+
+Capture uses the same settings, so its verdict matches what was on screen.
 
 **Phone camera on the same Wi-Fi.** Browsers allow the camera only on `https://` or `localhost`, so plain `http://<laptop-ip>:5173` will not work.
 1. Put the phone on the same Wi-Fi as the computer (not a guest network; those often isolate devices).
