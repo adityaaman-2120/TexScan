@@ -1,6 +1,8 @@
-import { Eye, Frame, Layers, Layout, Thermometer } from "lucide-react";
+import { Eye, Frame, Layers, Layout, Thermometer, TriangleAlert } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { requireNav } from "@/app/nav";
+import { useUi } from "@/store/ui";
 import { hotkeyFor } from "@/lib/hotkeys";
 import { Stagger, StaggerItem } from "@/components/motion";
 import { PageHeader } from "@/components/PageHeader";
@@ -33,6 +35,7 @@ const RESIDUAL_LABELS: Record<string, string> = {
 export function InspectPage() {
   const session = useInspectSession();
   const { result, running } = session;
+  const profileId = useUi((s) => s.profileId);
 
   const [mode, setMode] = useState<OverlayMode>("boxes");
   const [opacity, setOpacity] = useState(0.85);
@@ -143,6 +146,14 @@ export function InspectPage() {
                 <Card className="py-5">
                   <CardContent>
                     <VerdictHeader result={result} running={running} onXRay={() => setXray(true)} />
+                    {result?.decision === "FAIL" && profileId === null && !session.sample && (
+                      <p role="note" className="mt-4 flex items-start gap-2 rounded-lg border border-warning/30 bg-warning/5 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
+                        <TriangleAlert className="mt-0.5 size-3.5 shrink-0 text-warning" />
+                        <span>
+                          These are untuned settings. On a real photo (uneven light, folds, the edge of the cloth) they can call good cloth defective. For a trustworthy verdict make a <Link to="/profiles" className="text-primary underline-offset-4 hover:underline">profile</Link> from 5 to 20 good images of the same material and select it.
+                        </span>
+                      </p>
+                    )}
                   </CardContent>
                 </Card>
               </StaggerItem>

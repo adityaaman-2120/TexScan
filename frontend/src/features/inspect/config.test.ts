@@ -33,6 +33,11 @@ describe("sliderDefs", () => {
     expect(paths("fft")).not.toContain("local_stats.window");
   });
 
+  it("lets you inspect only the middle of the picture, for every method", () => {
+    (["fft", "gabor", "golden_template", "local_statistics"] as const).forEach((m) => expect(paths(m)).toContain("center_fraction"));
+    expect(toConfig({ center_fraction: 0.6 })).toEqual({ center_fraction: 0.6 });
+  });
+
   it("every slider range contains its default", () => {
     (["fft", "gabor", "golden_template", "local_statistics"] as const).forEach((m) =>
       sliderDefs(m).forEach((d) => {

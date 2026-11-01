@@ -25,6 +25,7 @@ export const DEFAULT_VALUES: Record<string, number | string> = {
   "morphology.min_area": 50,
   "morphology.kernel_size": 3,
   "notch.sigma": 3,
+  center_fraction: 1,
 };
 
 /** Controls shown in the Advanced accordion; the threshold control depends on the method. */
@@ -39,6 +40,7 @@ export function sliderDefs(method: Method): SliderDef[] {
   return [
     { path: "denoise.ksize", label: "Denoise kernel", hint: "Window of the median / Gaussian filter (odd)", min: 1, max: 15, step: 2, unit: "px" },
     threshold,
+    { path: "center_fraction", label: "Inspect area", hint: "Middle part of the picture that is judged (1 = all). Lower it to skip the edge of the cloth", min: 0.3, max: 1, step: 0.1 },
     { path: "morphology.min_area", label: "Min area", hint: "Smaller regions are discarded", min: 1, max: 2000, step: 1, unit: "px" },
     { path: "morphology.kernel_size", label: "Cleanup kernel", hint: "Opening / closing structuring element (odd)", min: 1, max: 11, step: 2, unit: "px" },
     ...(method === "fft"

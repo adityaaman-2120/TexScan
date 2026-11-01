@@ -135,6 +135,8 @@ export interface AutotuneInput {
   method: "fft" | "gabor" | "local_statistics";
   quantile: number;
   maxSide: number;
+  /** judge only the middle part of each picture (1 = all of it) */
+  centerFraction: number;
   images: File[];
 }
 
@@ -142,13 +144,13 @@ export interface AutotuneInput {
 export function useAutotune() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ name, method, quantile, maxSide, images }: AutotuneInput) => {
+    mutationFn: ({ name, method, quantile, maxSide, centerFraction, images }: AutotuneInput) => {
       const form = new FormData();
       images.forEach((file) => form.append("images", file));
       form.append("name", name);
       form.append("method", method);
       form.append("quantile", String(quantile));
-      form.append("config", JSON.stringify({ max_side: maxSide }));
+      form.append("config", JSON.stringify({ max_side: maxSide, center_fraction: centerFraction }));
       return postForm<ProfileOut>("/profiles/autotune", form);
     },
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: keys.profiles }),

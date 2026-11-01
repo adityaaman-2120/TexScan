@@ -25,8 +25,9 @@ type Method = (typeof METHODS)[number]["value"];
 export function CreateProfile({ onCreated }: { onCreated: (id: number) => void }) {
   const autotune = useAutotune();
   const [name, setName] = useState("");
-  const [method, setMethod] = useState<Method>("fft");
+  const [method, setMethod] = useState<Method>("gabor");
   const [maxSide, setMaxSide] = useState<"512" | "1024">("512");
+  const [centerFraction, setCenterFraction] = useState<"0.6" | "1">("1");
   const [quantile, setQuantile] = useState<(typeof QUANTILES)[number]>("99.5");
   const [images, setImages] = useState<Picked[]>([]);
   const [over, setOver] = useState(false);
@@ -53,7 +54,7 @@ export function CreateProfile({ onCreated }: { onCreated: (id: number) => void }
 
   const submit = () =>
     autotune.mutate(
-      { name: name.trim(), method, quantile: Number(quantile), maxSide: Number(maxSide), images: images.map((p) => p.file) },
+      { name: name.trim(), method, quantile: Number(quantile), maxSide: Number(maxSide), centerFraction: Number(centerFraction), images: images.map((p) => p.file) },
       {
         onSuccess: (profile) => {
           toast.success(`Profile "${profile.name}" saved`, { description: `Threshold ${profile.report.threshold.toFixed(2)} learned from ${profile.report.n_images} images.` });
@@ -97,6 +98,11 @@ export function CreateProfile({ onCreated }: { onCreated: (id: number) => void }
           <div className="text-xs font-medium">Working size</div>
           <Segmented label="Working size" value={maxSide} onChange={setMaxSide} options={[{ value: "512", label: "512 px (fast)" }, { value: "1024", label: "1024 px" }]} />
           <p className="text-[11px] text-muted-foreground">Inspections with this profile run at the same size, so thresholds stay comparable.</p>
+        </div>
+        <div className="space-y-1.5">
+          <div className="text-xs font-medium">Inspect area</div>
+          <Segmented label="Inspect area" value={centerFraction} onChange={setCenterFraction} options={[{ value: "1", label: "Whole picture" }, { value: "0.6", label: "Middle 60%" }]} />
+          <p className="text-[11px] text-muted-foreground">Choose Middle 60% when your photos show the edge of the cloth or a table: edges are not defects, and they make the tuned thresholds too lax.</p>
         </div>
 
         <div
