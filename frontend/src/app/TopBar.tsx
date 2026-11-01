@@ -10,7 +10,11 @@ import { ThemeToggle } from "./ThemeToggle";
 
 export function TopBar() {
   const { pathname } = useLocation();
-  const item = navItemFor(pathname);
+  const engineering = useUi((s) => s.engineering);
+  const found = navItemFor(pathname);
+  // an engineering page opened while the mode is off shows the generic gate, so its name stays out of the title
+  const gated = Boolean(found?.engineering) && !engineering;
+  const item = gated ? undefined : found;
   const setMobileNavOpen = useUi((s) => s.setMobileNavOpen);
   const setPaletteOpen = useUi((s) => s.setPaletteOpen);
 
@@ -23,7 +27,7 @@ export function TopBar() {
 
       <div className="hidden min-w-0 items-center gap-2 text-sm md:flex">
         {item && <item.icon className="size-4 text-primary" />}
-        <span className="truncate font-medium">{item?.label ?? "Not found"}</span>
+        <span className="truncate font-medium">{gated ? "Engineering tools" : (item?.label ?? "Not found")}</span>
       </div>
 
       <div className="ml-auto flex items-center gap-2">

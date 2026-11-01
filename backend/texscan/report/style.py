@@ -14,6 +14,8 @@ from reportlab.lib.units import mm
 from reportlab.pdfgen.canvas import Canvas
 from reportlab.platypus import BaseDocTemplate, Flowable, Frame, Image, PageTemplate, Paragraph, Table, TableStyle
 
+from texscan.report.brand import draw_logo
+
 INK = colors.HexColor("#17202b")
 MUTED = colors.HexColor("#5b6675")
 RULE = colors.HexColor("#dde3ea")
@@ -23,6 +25,7 @@ PASS = colors.HexColor("#15803d")
 FAIL = colors.HexColor("#b91c1c")
 SERIES_1 = colors.HexColor("#2a78d6")  # the app's first categorical colour
 
+DEFAULT_KIND = "Surface defect inspection report"  # the running header on the right of every page
 MARGIN = 16 * mm
 PAGE_W, PAGE_H = A4
 CONTENT_W = PAGE_W - 2 * MARGIN
@@ -140,9 +143,10 @@ def stat_row(items: list[tuple[str, str, colors.Color]], width: float = CONTENT_
 class _NumberedCanvas(Canvas):
     """Draws "Page n of N" in the footer; N is only known after the last page, so pages are held back until save()."""
 
-    def __init__(self, *args: object, footer: str = "", **kwargs: object) -> None:
+    def __init__(self, *args: object, footer: str = "", kind: str = DEFAULT_KIND, **kwargs: object) -> None:
         super().__init__(*args, **kwargs)  # type: ignore[arg-type]
         self._footer = footer
+        self._kind = kind
         self._saved: list[dict[str, object]] = []
 
     def showPage(self) -> None:  # noqa: N802 - reportlab API
@@ -163,10 +167,11 @@ class _NumberedCanvas(Canvas):
         self.rect(0, PAGE_H - 4 * mm, PAGE_W, 4 * mm, stroke=0, fill=1)
         self.setFillColor(INK)
         self.setFont("Helvetica-Bold", 11)
-        self.drawString(MARGIN, PAGE_H - 11 * mm, "TexScan")
+        draw_logo(self, MARGIN, PAGE_H - 14.4 * mm, 7 * mm)
+        self.drawString(MARGIN + 9 * mm, PAGE_H - 11 * mm, "TexScan")
         self.setFont("Helvetica", 8)
         self.setFillColor(MUTED)
-        self.drawRightString(PAGE_W - MARGIN, PAGE_H - 11 * mm, "Surface defect inspection report")
+        self.drawRightString(PAGE_W - MARGIN, PAGE_H - 11 * mm, self._kind)
         self.setStrokeColor(RULE)
         self.setLineWidth(0.5)
         self.line(MARGIN, 11 * mm, PAGE_W - MARGIN, 11 * mm)
@@ -175,11 +180,11 @@ class _NumberedCanvas(Canvas):
         self.restoreState()
 
 
-def build_pdf(story: list[Flowable], title: str, footer: str) -> bytes:
+def build_pdf(story: list[Flowable], title: str, footer: str, kind: str = DEFAULT_KIND) -> bytes:
     """Lay the flowables out on A4 pages with the shared header and footer and return the PDF bytes."""
     buffer = BytesIO()
     doc = BaseDocTemplate(buffer, pagesize=A4, title=title, author="TexScan", leftMargin=MARGIN, rightMargin=MARGIN, topMargin=MARGIN + TOP_INSET, bottomMargin=BOTTOM_INSET + 6 * mm)
     frame = Frame(MARGIN, BOTTOM_INSET + 6 * mm, CONTENT_W, PAGE_H - 2 * MARGIN - TOP_INSET - 6 * mm, leftPadding=0, rightPadding=0, topPadding=0, bottomPadding=0)
     doc.addPageTemplates([PageTemplate(id="page", frames=[frame])])
-    doc.build(story, canvasmaker=lambda *a, **k: _NumberedCanvas(*a, footer=footer, **k))
+    doc.build(story, canvasmaker=lambda *a, **k: _NumberedCanvas(*a, footer=footer, kind=kind, **k))
     return buffer.getvalue()

@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 from texscan.pipeline.denoise import DenoiseMethod
 from texscan.pipeline.enhance import EnhanceMethod
 from texscan.pipeline.segment import ThresholdMethod
+from texscan.pipeline.types import Calibration
 
 
 Method = Literal["fft", "gabor", "golden_template", "local_statistics"]
@@ -85,5 +86,6 @@ class PipelineConfig(BaseModel):
     morphology: MorphConfig = MorphConfig()
     trim_borders: bool = False  # crop black letterbox / pillarbox bars first (live camera frames); off for ordinary photos
     center_fraction: float = Field(1.0, gt=0.1, le=1.0)  # inspect only the middle part of the image (after trimming), to skip object edges
+    calibration: Calibration | None = None  # mm per pixel; set from a profile's calibration, never tuned
     max_defects: int = Field(0, ge=0)
     max_area_percent: float = Field(0.0, ge=0)

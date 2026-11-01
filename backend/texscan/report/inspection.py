@@ -90,20 +90,40 @@ def _defects(data: InspectionReportData) -> list[Flowable]:
     defects = data.inspection.defects
     if not defects:
         return [para("No defects were found.", "small")]
-    head = [para(h, "cell_head") for h in ("#", "Type", "Confidence", "Position (x, y)", "Size (w x h)", "Area (px)", "Aspect", "Solidity", "Contrast")]
-    rows = [head]
+    calibrated = data.inspection.config.calibration is not None
+    if calibrated:
+        names = ("#", "Type", "Confidence", "Position (x, y)", "Length", "Width", "Area", "Area (px)", "Contrast")
+        widths = [w * mm for w in (8, 24, 18, 24, 24, 22, 28, 17, 15)]
+    else:
+        names = ("#", "Type", "Confidence", "Position (x, y)", "Size (w x h)", "Area (px)", "Aspect", "Solidity", "Contrast")
+        widths = [w * mm for w in (9, 27, 20, 26, 24, 19, 16, 17, 16)]
+    rows = [[para(h, "cell_head") for h in names]]
     for d in defects[:MAX_DEFECT_ROWS]:
-        rows.append([
-            para(str(d.id), "cell"), markup(f"<b>{pretty(d.defect_type)}</b>", "cell"),
-            para("-" if d.type_confidence is None else f"{d.type_confidence:.0%}", "cell"),
-            para(f"{d.bbox[0]}, {d.bbox[1]}", "cell"), para(f"{d.bbox[2]} x {d.bbox[3]}", "cell"), para(str(d.area), "cell"),
-            para(f"{d.aspect_ratio:.2f}", "cell"), para(f"{d.solidity:.2f}", "cell"), para("-" if d.contrast is None else f"{d.contrast:+.0f}", "cell"),
-        ])  # fmt: skip
-    widths = [w * mm for w in (9, 27, 20, 26, 24, 19, 16, 17, 16)]
+        lead = [para(str(d.id), "cell"), markup(f"<b>{pretty(d.defect_type)}</b>", "cell"), para("-" if d.type_confidence is None else f"{d.type_confidence:.0%}", "cell"), para(f"{d.bbox[0]}, {d.bbox[1]}", "cell")]
+        contrast = para("-" if d.contrast is None else f"{d.contrast:+.0f}", "cell")
+        if calibrated:
+            rows.append(lead + [
+                para(_size(d.length_mm, d.length_in, "mm", "in"), "cell"), para(_size(d.width_mm, d.width_in, "mm", "in"), "cell"),
+                para(_size(d.area_mm2, d.area_in2, "mm²", "in²"), "cell"), para(str(d.area), "cell"), contrast,
+            ])  # fmt: skip
+        else:
+            rows.append(lead + [
+                para(f"{d.bbox[2]} x {d.bbox[3]}", "cell"), para(str(d.area), "cell"),
+                para(f"{d.aspect_ratio:.2f}", "cell"), para(f"{d.solidity:.2f}", "cell"), contrast,
+            ])  # fmt: skip
     out: list[Flowable] = [data_table(rows, [w * CONTENT_W / sum(widths) for w in widths])]
+    note = "Sizes are the longest and shortest side of each defect's smallest rotated rectangle." if calibrated else "Not calibrated: sizes are in pixels. Calibrate the profile to report millimetres and inches."
+    out += [Spacer(1, 2 * mm), para(note, "small")]
     if len(defects) > MAX_DEFECT_ROWS:
         out += [Spacer(1, 2 * mm), para(f"Showing the first {MAX_DEFECT_ROWS} of {len(defects)} defects.", "small")]
     return out
+
+
+def _size(metric: float | None, imperial: float | None, metric_unit: str, imperial_unit: str) -> str:
+    """'12.3 mm (0.48 in)'; a dash when there is no size."""
+    if metric is None or imperial is None:
+        return "-"
+    return f"{metric:.1f} {metric_unit} ({imperial:.2f} {imperial_unit})"
 
 
 def _strip(data: InspectionReportData) -> list[Flowable]:

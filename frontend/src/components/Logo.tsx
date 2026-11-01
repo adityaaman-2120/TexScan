@@ -1,18 +1,21 @@
 import { cn } from "@/lib/utils";
+import { LOGO, logoBars, logoFinder } from "./logoGeometry";
 
-/** Scan-bracket mark with a single thread line, in the accent color. */
+/** The TexScan mark: a woven tile with a scanner's viewfinder on one cell. Drawn from the geometry in logo.ts. */
 export function LogoMark({ className }: { className?: string }) {
+  const { colors, size, tileRadius, barRadius, finder: f } = LOGO;
+  const fin = logoFinder();
   return (
-    <svg viewBox="0 0 32 32" fill="none" className={cn("size-8", className)} aria-hidden>
-      <rect width="32" height="32" rx="8" className="fill-primary/10" />
-      <rect x="0.5" y="0.5" width="31" height="31" rx="7.5" className="stroke-primary/30" />
-      <path
-        d="M8 12V9a1 1 0 0 1 1-1h3M20 8h3a1 1 0 0 1 1 1v3M24 20v3a1 1 0 0 1-1 1h-3M12 24H9a1 1 0 0 1-1-1v-3"
-        className="stroke-primary"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-      <path d="M11 16h10" className="stroke-primary" strokeWidth="2" strokeLinecap="round" />
+    <svg viewBox={`0 0 ${size} ${size}`} className={cn("size-8", className)} role="img" aria-label="TexScan">
+      <rect width={size} height={size} rx={tileRadius} fill={colors.tile} />
+      <rect x="0.5" y="0.5" width={size - 1} height={size - 1} rx={tileRadius - 0.5} fill="none" stroke={colors.edge} strokeOpacity="0.28" />
+      <g fill={colors.bar}>
+        {logoBars().map((b, i) => (
+          <rect key={i} x={b.x} y={b.y} width={b.width} height={b.height} rx={barRadius} />
+        ))}
+      </g>
+      <rect x={fin.x} y={fin.y} width={fin.side} height={fin.side} rx={f.radius} fill="none" stroke={colors.accent} strokeWidth={f.stroke} />
+      <circle cx={fin.cx} cy={fin.cy} r={f.dot} fill={colors.accent} />
     </svg>
   );
 }
@@ -22,9 +25,9 @@ export function Logo({ collapsed }: { collapsed?: boolean }) {
     <div className="flex items-center gap-2.5">
       <LogoMark />
       {!collapsed && (
-        <div className="flex items-baseline gap-1.5 leading-none">
+        <div className="flex flex-col gap-1 leading-none">
           <span className="text-[15px] font-semibold tracking-tight">TexScan</span>
-          <span className="num text-[10px] text-muted-foreground">v0.1</span>
+          <span className="text-[10px] leading-tight text-muted-foreground">Fabric inspection for small textile units</span>
         </div>
       )}
     </div>

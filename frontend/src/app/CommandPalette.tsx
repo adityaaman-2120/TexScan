@@ -1,4 +1,4 @@
-import { Moon, PanelLeft, SlidersHorizontal, Sun } from "lucide-react";
+import { Moon, PanelLeft, Settings, SlidersHorizontal, Sun, Wrench } from "lucide-react";
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useProfiles } from "@/api/hooks";
@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/command";
 import { modKey } from "@/components/ui/kbd";
 import { useUi } from "@/store/ui";
-import { NAV_ITEMS } from "./nav";
+import { paletteItems } from "./nav";
 
 /** Ctrl/Cmd + K: jump to any page, switch profile, or flip a setting. */
 export function CommandPalette() {
@@ -23,6 +23,9 @@ export function CommandPalette() {
   const theme = useUi((s) => s.theme);
   const toggleTheme = useUi((s) => s.toggleTheme);
   const toggleSidebar = useUi((s) => s.toggleSidebar);
+  const engineering = useUi((s) => s.engineering);
+  const setEngineering = useUi((s) => s.setEngineering);
+  const setSettingsOpen = useUi((s) => s.setSettingsOpen);
   const profileId = useUi((s) => s.profileId);
   const setProfileId = useUi((s) => s.setProfileId);
   const navigate = useNavigate();
@@ -50,7 +53,7 @@ export function CommandPalette() {
       <CommandList>
         <CommandEmpty>Nothing matches that.</CommandEmpty>
         <CommandGroup heading="Go to">
-          {NAV_ITEMS.map((item) => (
+          {paletteItems(engineering).map((item) => (
             <CommandItem key={item.path} value={item.label} keywords={item.keywords} onSelect={run(() => navigate(item.path))}>
               <item.icon />
               <span>{item.label}</span>
@@ -80,6 +83,14 @@ export function CommandPalette() {
           <CommandItem value="toggle theme dark light" keywords={["appearance", "mode"]} onSelect={run(toggleTheme)}>
             {theme === "dark" ? <Sun /> : <Moon />}
             <span>Switch to {theme === "dark" ? "light" : "dark"} theme</span>
+          </CommandItem>
+          <CommandItem value="open settings preferences" onSelect={run(() => setSettingsOpen(true))}>
+            <Settings />
+            <span>Settings</span>
+          </CommandItem>
+          <CommandItem value="engineering mode toggle advanced tools" keywords={["developer", "advanced"]} onSelect={run(() => setEngineering(!engineering))}>
+            <Wrench />
+            <span>Turn Engineering mode {engineering ? "off" : "on"}</span>
           </CommandItem>
           <CommandItem value="toggle sidebar collapse expand" onSelect={run(toggleSidebar)}>
             <PanelLeft />

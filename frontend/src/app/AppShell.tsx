@@ -3,6 +3,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useUi } from "@/store/ui";
 import { CommandPalette } from "./CommandPalette";
+import { SettingsDialog } from "./SettingsDialog";
 import { DesktopSidebar, MobileSidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
 
@@ -48,6 +49,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </main>
         </div>
         <CommandPalette />
+        <SettingsDialog />
         <Toaster />
       </div>
     </TooltipProvider>

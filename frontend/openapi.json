@@ -396,7 +396,7 @@
           "inspections"
         ],
         "summary": "Get Bit Planes",
-        "description": "The eight bit planes of the inspection's grayscale image, most significant first (a syllabus view, not used by detection).",
+        "description": "The eight bit planes of the inspection's grayscale image, most significant first (a viewer only, not used by detection).",
         "operationId": "get_bit_planes_inspections__inspection_id__bit_planes_get",
         "parameters": [
           {
@@ -562,6 +562,199 @@
         "responses": {
           "204": {
             "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/profiles/{profile_id}/calibration/marker": {
+      "post": {
+        "tags": [
+          "calibration"
+        ],
+        "summary": "Calibrate With Marker",
+        "description": "Find the printed ArUco marker in the photo and store mm per pixel in the profile.",
+        "operationId": "calibrate_with_marker_profiles__profile_id__calibration_marker_post",
+        "parameters": [
+          {
+            "name": "profile_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Profile Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_calibrate_with_marker_profiles__profile_id__calibration_marker_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalibrationOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/profiles/{profile_id}/calibration/ruler": {
+      "post": {
+        "tags": [
+          "calibration"
+        ],
+        "summary": "Calibrate With Ruler",
+        "description": "Two points clicked on a ruler (or any known length) in a photo, with the distance between them.",
+        "operationId": "calibrate_with_ruler_profiles__profile_id__calibration_ruler_post",
+        "parameters": [
+          {
+            "name": "profile_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Profile Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_calibrate_with_ruler_profiles__profile_id__calibration_ruler_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalibrationOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/profiles/{profile_id}/calibration": {
+      "delete": {
+        "tags": [
+          "calibration"
+        ],
+        "summary": "Clear Calibration",
+        "description": "Back to sizes in pixels only.",
+        "operationId": "clear_calibration_profiles__profile_id__calibration_delete",
+        "parameters": [
+          {
+            "name": "profile_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Profile Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/calibration/marker.pdf": {
+      "get": {
+        "tags": [
+          "calibration"
+        ],
+        "summary": "Marker Pdf Download",
+        "description": "A4 page with the calibration marker at its exact size, a 100 mm check bar and printing instructions.",
+        "operationId": "marker_pdf_download_calibration_marker_pdf_get",
+        "parameters": [
+          {
+            "name": "side_mm",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "maximum": 150.0,
+              "minimum": 10.0,
+              "description": "Side of the printed black square, in mm",
+              "default": 50.0,
+              "title": "Side Mm"
+            },
+            "description": "Side of the printed black square, in mm"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The marker as a PDF file",
+            "content": {
+              "application/pdf": {}
+            }
           },
           "422": {
             "description": "Validation Error",
@@ -1215,6 +1408,426 @@
         }
       }
     },
+    "/rolls": {
+      "post": {
+        "tags": [
+          "rolls"
+        ],
+        "summary": "Create Roll",
+        "description": "Start a roll. Its profile must be size-calibrated, because points depend on real defect lengths.",
+        "operationId": "create_roll_rolls_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RollIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RollOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "rolls"
+        ],
+        "summary": "List Rolls",
+        "operationId": "list_rolls_rolls_get",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "open",
+                    "complete"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "matches roll ID, supplier or fabric",
+              "title": "Q"
+            },
+            "description": "matches roll ID, supplier or fabric"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RollListItem"
+                  },
+                  "title": "Response List Rolls Rolls Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rolls/stats": {
+      "get": {
+        "tags": [
+          "rolls"
+        ],
+        "summary": "Get Roll Stats",
+        "description": "Roll KPIs for the dashboard: rolls inspected, acceptance rate, average points, defect types by supplier.",
+        "operationId": "get_roll_stats_rolls_stats_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RollStats"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rolls/{roll_id}": {
+      "get": {
+        "tags": [
+          "rolls"
+        ],
+        "summary": "Get Roll",
+        "operationId": "get_roll_rolls__roll_id__get",
+        "parameters": [
+          {
+            "name": "roll_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Roll Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RollOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "rolls"
+        ],
+        "summary": "Update Roll",
+        "description": "Edit the details, the limit or the hole rule, or mark the roll complete (or open it again).",
+        "operationId": "update_roll_rolls__roll_id__patch",
+        "parameters": [
+          {
+            "name": "roll_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Roll Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RollPatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RollOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "rolls"
+        ],
+        "summary": "Delete Roll",
+        "description": "Delete the roll with its captures and their inspections.",
+        "operationId": "delete_roll_rolls__roll_id__delete",
+        "parameters": [
+          {
+            "name": "roll_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Roll Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rolls/{roll_id}/captures": {
+      "post": {
+        "tags": [
+          "rolls"
+        ],
+        "summary": "Add Captures",
+        "description": "Inspect each picture with the roll's profile and place it on the roll at its metre mark.",
+        "operationId": "add_captures_rolls__roll_id__captures_post",
+        "parameters": [
+          {
+            "name": "roll_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Roll Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_add_captures_rolls__roll_id__captures_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CaptureResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rolls/{roll_id}/captures/{capture_id}": {
+      "delete": {
+        "tags": [
+          "rolls"
+        ],
+        "summary": "Delete Capture",
+        "description": "Remove one capture (and its inspection) from the roll.",
+        "operationId": "delete_capture_rolls__roll_id__captures__capture_id__delete",
+        "parameters": [
+          {
+            "name": "roll_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Roll Id"
+            }
+          },
+          {
+            "name": "capture_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Capture Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RollOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rolls/{roll_id}/report.pdf": {
+      "get": {
+        "tags": [
+          "rolls"
+        ],
+        "summary": "Roll Pdf",
+        "description": "The roll's inspection record: details, score and grade, defect map, defect list, signature lines.",
+        "operationId": "roll_pdf_rolls__roll_id__report_pdf_get",
+        "parameters": [
+          {
+            "name": "roll_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Roll Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The roll report as a PDF file",
+            "content": {
+              "application/pdf": {}
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/health": {
       "get": {
         "summary": "Health",
@@ -1694,6 +2307,42 @@
         ],
         "title": "BitPlanesOut"
       },
+      "Body_add_captures_rolls__roll_id__captures_post": {
+        "properties": {
+          "images": {
+            "items": {
+              "type": "string",
+              "contentMediaType": "application/octet-stream"
+            },
+            "type": "array",
+            "title": "Images",
+            "description": "Pictures of the fabric, one per position"
+          },
+          "positions": {
+            "type": "string",
+            "title": "Positions",
+            "description": "JSON list of metre marks (the picture's top edge), one per image"
+          },
+          "config": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Config",
+            "description": "JSON PipelineConfig overrides, e.g. from live capture"
+          }
+        },
+        "type": "object",
+        "required": [
+          "images",
+          "positions"
+        ],
+        "title": "Body_add_captures_rolls__roll_id__captures_post"
+      },
       "Body_arena_arena_post": {
         "properties": {
           "image": {
@@ -1807,6 +2456,78 @@
           "name"
         ],
         "title": "Body_autotune_profiles_autotune_post"
+      },
+      "Body_calibrate_with_marker_profiles__profile_id__calibration_marker_post": {
+        "properties": {
+          "image": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "Image",
+            "description": "A photo with the printed marker in view"
+          },
+          "side_mm": {
+            "type": "number",
+            "maximum": 1000.0,
+            "exclusiveMinimum": 0.0,
+            "title": "Side Mm",
+            "description": "Printed side length of the marker's black square, in mm"
+          }
+        },
+        "type": "object",
+        "required": [
+          "image",
+          "side_mm"
+        ],
+        "title": "Body_calibrate_with_marker_profiles__profile_id__calibration_marker_post"
+      },
+      "Body_calibrate_with_ruler_profiles__profile_id__calibration_ruler_post": {
+        "properties": {
+          "image_width": {
+            "type": "integer",
+            "minimum": 2.0,
+            "title": "Image Width",
+            "description": "Width of the photo the points were picked on, in pixels"
+          },
+          "image_height": {
+            "type": "integer",
+            "minimum": 2.0,
+            "title": "Image Height"
+          },
+          "x1": {
+            "type": "number",
+            "title": "X1"
+          },
+          "y1": {
+            "type": "number",
+            "title": "Y1"
+          },
+          "x2": {
+            "type": "number",
+            "title": "X2"
+          },
+          "y2": {
+            "type": "number",
+            "title": "Y2"
+          },
+          "distance_mm": {
+            "type": "number",
+            "maximum": 100000.0,
+            "exclusiveMinimum": 0.0,
+            "title": "Distance Mm",
+            "description": "Real distance between the two points, in mm"
+          }
+        },
+        "type": "object",
+        "required": [
+          "image_width",
+          "image_height",
+          "x1",
+          "y1",
+          "x2",
+          "y2",
+          "distance_mm"
+        ],
+        "title": "Body_calibrate_with_ruler_profiles__profile_id__calibration_ruler_post"
       },
       "Body_inspect_batch_inspect_batch_post": {
         "properties": {
@@ -2153,6 +2874,89 @@
         ],
         "title": "Body_spectrum_spectrum_post"
       },
+      "Calibration": {
+        "properties": {
+          "mm_per_pixel": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Mm Per Pixel"
+          },
+          "image_long_side": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Image Long Side"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "marker",
+              "ruler"
+            ],
+            "title": "Source"
+          },
+          "reference_mm": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Reference Mm"
+          }
+        },
+        "type": "object",
+        "required": [
+          "mm_per_pixel",
+          "image_long_side",
+          "source",
+          "reference_mm"
+        ],
+        "title": "Calibration",
+        "description": "Real-world scale of a camera setup, stored in a profile's config.\n\nmm_per_pixel was measured on an image whose longest side was image_long_side pixels (see pipeline/measure.py for how\nit carries over to images of other sizes)."
+      },
+      "CalibrationOut": {
+        "properties": {
+          "profile": {
+            "$ref": "#/components/schemas/ProfileOut"
+          },
+          "mm_per_pixel": {
+            "type": "number",
+            "title": "Mm Per Pixel"
+          },
+          "detail": {
+            "type": "string",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "required": [
+          "profile",
+          "mm_per_pixel",
+          "detail"
+        ],
+        "title": "CalibrationOut"
+      },
+      "CaptureResult": {
+        "properties": {
+          "roll": {
+            "$ref": "#/components/schemas/RollOut"
+          },
+          "added": {
+            "type": "integer",
+            "title": "Added"
+          },
+          "rejected": {
+            "items": {
+              "$ref": "#/components/schemas/RejectedFile"
+            },
+            "type": "array",
+            "title": "Rejected"
+          }
+        },
+        "type": "object",
+        "required": [
+          "roll",
+          "added",
+          "rejected"
+        ],
+        "title": "CaptureResult"
+      },
       "CategoryMetrics": {
         "properties": {
           "accuracy": {
@@ -2375,6 +3179,94 @@
               }
             ],
             "title": "Type Confidence"
+          },
+          "length_px": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Length Px"
+          },
+          "width_px": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Width Px"
+          },
+          "length_mm": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Length Mm"
+          },
+          "width_mm": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Width Mm"
+          },
+          "area_mm2": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Area Mm2"
+          },
+          "length_in": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Length In"
+          },
+          "width_in": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Width In"
+          },
+          "area_in2": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Area In2"
           }
         },
         "type": "object",
@@ -3065,6 +3957,16 @@
             "title": "Center Fraction",
             "default": 1.0
           },
+          "calibration": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Calibration"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "max_defects": {
             "type": "integer",
             "minimum": 0.0,
@@ -3301,6 +4203,828 @@
         ],
         "title": "RobustnessPoint"
       },
+      "RollCaptureOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "inspection_id": {
+            "type": "integer",
+            "title": "Inspection Id"
+          },
+          "filename": {
+            "type": "string",
+            "title": "Filename"
+          },
+          "decision": {
+            "type": "string",
+            "enum": [
+              "PASS",
+              "FAIL"
+            ],
+            "title": "Decision"
+          },
+          "defect_count": {
+            "type": "integer",
+            "title": "Defect Count"
+          },
+          "position_m": {
+            "type": "number",
+            "title": "Position M"
+          },
+          "start_m": {
+            "type": "number",
+            "title": "Start M"
+          },
+          "covered_m": {
+            "type": "number",
+            "title": "Covered M"
+          },
+          "thumbnail_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Thumbnail Url"
+          },
+          "overlay_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Overlay Url"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "inspection_id",
+          "filename",
+          "decision",
+          "defect_count",
+          "position_m",
+          "start_m",
+          "covered_m",
+          "thumbnail_url",
+          "overlay_url",
+          "created_at"
+        ],
+        "title": "RollCaptureOut"
+      },
+      "RollDefectOut": {
+        "properties": {
+          "capture_id": {
+            "type": "integer",
+            "title": "Capture Id"
+          },
+          "inspection_id": {
+            "type": "integer",
+            "title": "Inspection Id"
+          },
+          "defect_id": {
+            "type": "integer",
+            "title": "Defect Id"
+          },
+          "defect_type": {
+            "type": "string",
+            "title": "Defect Type"
+          },
+          "position_m": {
+            "type": "number",
+            "title": "Position M"
+          },
+          "position_yd": {
+            "type": "number",
+            "title": "Position Yd"
+          },
+          "start_m": {
+            "type": "number",
+            "title": "Start M"
+          },
+          "end_m": {
+            "type": "number",
+            "title": "End M"
+          },
+          "length_mm": {
+            "type": "number",
+            "title": "Length Mm"
+          },
+          "length_in": {
+            "type": "number",
+            "title": "Length In"
+          },
+          "width_mm": {
+            "type": "number",
+            "title": "Width Mm"
+          },
+          "width_in": {
+            "type": "number",
+            "title": "Width In"
+          },
+          "area_mm2": {
+            "type": "number",
+            "title": "Area Mm2"
+          },
+          "points": {
+            "type": "integer",
+            "title": "Points"
+          },
+          "is_hole": {
+            "type": "boolean",
+            "title": "Is Hole"
+          },
+          "continuous": {
+            "type": "boolean",
+            "title": "Continuous"
+          }
+        },
+        "type": "object",
+        "required": [
+          "capture_id",
+          "inspection_id",
+          "defect_id",
+          "defect_type",
+          "position_m",
+          "position_yd",
+          "start_m",
+          "end_m",
+          "length_mm",
+          "length_in",
+          "width_mm",
+          "width_in",
+          "area_mm2",
+          "points",
+          "is_hole",
+          "continuous"
+        ],
+        "title": "RollDefectOut"
+      },
+      "RollIn": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 60,
+            "minLength": 1,
+            "title": "Code",
+            "description": "Roll ID as printed on the roll"
+          },
+          "supplier": {
+            "type": "string",
+            "maxLength": 120,
+            "title": "Supplier",
+            "default": ""
+          },
+          "fabric": {
+            "type": "string",
+            "maxLength": 120,
+            "title": "Fabric",
+            "description": "Fabric type",
+            "default": ""
+          },
+          "profile_id": {
+            "type": "integer",
+            "title": "Profile Id",
+            "description": "A size-calibrated profile for this fabric"
+          },
+          "width_mm": {
+            "type": "number",
+            "maximum": 10000.0,
+            "exclusiveMinimum": 0.0,
+            "title": "Width Mm",
+            "description": "Cuttable width between selvages"
+          },
+          "length_m": {
+            "type": "number",
+            "maximum": 100000.0,
+            "exclusiveMinimum": 0.0,
+            "title": "Length M"
+          },
+          "limit": {
+            "type": "number",
+            "maximum": 1000.0,
+            "exclusiveMinimum": 0.0,
+            "title": "Limit",
+            "description": "Accept when points per 100 sq yd are at or below this",
+            "default": 40.0
+          },
+          "hole_rule": {
+            "type": "string",
+            "enum": [
+              "tiered",
+              "any_four"
+            ],
+            "title": "Hole Rule",
+            "default": "tiered"
+          },
+          "along": {
+            "type": "string",
+            "enum": [
+              "vertical",
+              "horizontal"
+            ],
+            "title": "Along",
+            "default": "vertical"
+          },
+          "inspector": {
+            "type": "string",
+            "maxLength": 120,
+            "title": "Inspector",
+            "default": ""
+          },
+          "notes": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Notes",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "profile_id",
+          "width_mm",
+          "length_m"
+        ],
+        "title": "RollIn"
+      },
+      "RollListItem": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "supplier": {
+            "type": "string",
+            "title": "Supplier"
+          },
+          "fabric": {
+            "type": "string",
+            "title": "Fabric"
+          },
+          "profile_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profile Name"
+          },
+          "width_mm": {
+            "type": "number",
+            "title": "Width Mm"
+          },
+          "length_m": {
+            "type": "number",
+            "title": "Length M"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "open",
+              "complete"
+            ],
+            "title": "Status"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          },
+          "capture_count": {
+            "type": "integer",
+            "title": "Capture Count"
+          },
+          "defect_count": {
+            "type": "integer",
+            "title": "Defect Count"
+          },
+          "total_points": {
+            "type": "integer",
+            "title": "Total Points"
+          },
+          "points_per_100_sq_yd": {
+            "type": "number",
+            "title": "Points Per 100 Sq Yd"
+          },
+          "limit": {
+            "type": "number",
+            "title": "Limit"
+          },
+          "accepted": {
+            "type": "boolean",
+            "title": "Accepted"
+          },
+          "grade": {
+            "type": "string",
+            "title": "Grade"
+          },
+          "provisional": {
+            "type": "boolean",
+            "title": "Provisional"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "code",
+          "supplier",
+          "fabric",
+          "profile_name",
+          "width_mm",
+          "length_m",
+          "status",
+          "created_at",
+          "completed_at",
+          "capture_count",
+          "defect_count",
+          "total_points",
+          "points_per_100_sq_yd",
+          "limit",
+          "accepted",
+          "grade",
+          "provisional"
+        ],
+        "title": "RollListItem"
+      },
+      "RollOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "supplier": {
+            "type": "string",
+            "title": "Supplier"
+          },
+          "fabric": {
+            "type": "string",
+            "title": "Fabric"
+          },
+          "profile_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profile Id"
+          },
+          "profile_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profile Name"
+          },
+          "width_mm": {
+            "type": "number",
+            "title": "Width Mm"
+          },
+          "width_in": {
+            "type": "number",
+            "title": "Width In"
+          },
+          "length_m": {
+            "type": "number",
+            "title": "Length M"
+          },
+          "length_yd": {
+            "type": "number",
+            "title": "Length Yd"
+          },
+          "limit": {
+            "type": "number",
+            "title": "Limit"
+          },
+          "hole_rule": {
+            "type": "string",
+            "enum": [
+              "tiered",
+              "any_four"
+            ],
+            "title": "Hole Rule"
+          },
+          "along": {
+            "type": "string",
+            "enum": [
+              "vertical",
+              "horizontal"
+            ],
+            "title": "Along"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "open",
+              "complete"
+            ],
+            "title": "Status"
+          },
+          "inspector": {
+            "type": "string",
+            "title": "Inspector"
+          },
+          "notes": {
+            "type": "string",
+            "title": "Notes"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/RollSummary"
+          },
+          "captures": {
+            "items": {
+              "$ref": "#/components/schemas/RollCaptureOut"
+            },
+            "type": "array",
+            "title": "Captures"
+          },
+          "defects": {
+            "items": {
+              "$ref": "#/components/schemas/RollDefectOut"
+            },
+            "type": "array",
+            "title": "Defects"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "code",
+          "supplier",
+          "fabric",
+          "profile_id",
+          "profile_name",
+          "width_mm",
+          "width_in",
+          "length_m",
+          "length_yd",
+          "limit",
+          "hole_rule",
+          "along",
+          "status",
+          "inspector",
+          "notes",
+          "created_at",
+          "updated_at",
+          "completed_at",
+          "summary",
+          "captures",
+          "defects"
+        ],
+        "title": "RollOut"
+      },
+      "RollPatch": {
+        "properties": {
+          "supplier": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Supplier"
+          },
+          "fabric": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fabric"
+          },
+          "width_mm": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 10000.0,
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Width Mm"
+          },
+          "length_m": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 100000.0,
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Length M"
+          },
+          "limit": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 1000.0,
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Limit"
+          },
+          "hole_rule": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "tiered",
+                  "any_four"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hole Rule"
+          },
+          "along": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "vertical",
+                  "horizontal"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Along"
+          },
+          "inspector": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Inspector"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "open",
+                  "complete"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "title": "RollPatch"
+      },
+      "RollStats": {
+        "properties": {
+          "rolls_inspected": {
+            "type": "integer",
+            "title": "Rolls Inspected"
+          },
+          "rolls_open": {
+            "type": "integer",
+            "title": "Rolls Open"
+          },
+          "accepted": {
+            "type": "integer",
+            "title": "Accepted"
+          },
+          "rejected": {
+            "type": "integer",
+            "title": "Rejected"
+          },
+          "acceptance_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Acceptance Rate"
+          },
+          "avg_points_per_100_sq_yd": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avg Points Per 100 Sq Yd"
+          },
+          "suppliers": {
+            "items": {
+              "$ref": "#/components/schemas/SupplierStat"
+            },
+            "type": "array",
+            "title": "Suppliers"
+          }
+        },
+        "type": "object",
+        "required": [
+          "rolls_inspected",
+          "rolls_open",
+          "accepted",
+          "rejected",
+          "acceptance_rate",
+          "avg_points_per_100_sq_yd",
+          "suppliers"
+        ],
+        "title": "RollStats"
+      },
+      "RollSummary": {
+        "properties": {
+          "total_points": {
+            "type": "integer",
+            "title": "Total Points"
+          },
+          "raw_points": {
+            "type": "integer",
+            "title": "Raw Points"
+          },
+          "points_per_100_sq_yd": {
+            "type": "number",
+            "title": "Points Per 100 Sq Yd"
+          },
+          "limit": {
+            "type": "number",
+            "title": "Limit"
+          },
+          "accepted": {
+            "type": "boolean",
+            "title": "Accepted"
+          },
+          "grade": {
+            "type": "string",
+            "title": "Grade"
+          },
+          "provisional": {
+            "type": "boolean",
+            "title": "Provisional"
+          },
+          "length_inspected_m": {
+            "type": "number",
+            "title": "Length Inspected M"
+          },
+          "length_inspected_yd": {
+            "type": "number",
+            "title": "Length Inspected Yd"
+          },
+          "coverage_percent": {
+            "type": "number",
+            "title": "Coverage Percent"
+          },
+          "defect_count": {
+            "type": "integer",
+            "title": "Defect Count"
+          },
+          "capture_count": {
+            "type": "integer",
+            "title": "Capture Count"
+          },
+          "ungraded_defects": {
+            "type": "integer",
+            "title": "Ungraded Defects"
+          },
+          "yards": {
+            "items": {
+              "$ref": "#/components/schemas/YardPoints"
+            },
+            "type": "array",
+            "title": "Yards"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total_points",
+          "raw_points",
+          "points_per_100_sq_yd",
+          "limit",
+          "accepted",
+          "grade",
+          "provisional",
+          "length_inspected_m",
+          "length_inspected_yd",
+          "coverage_percent",
+          "defect_count",
+          "capture_count",
+          "ungraded_defects",
+          "yards",
+          "warnings"
+        ],
+        "title": "RollSummary"
+      },
       "ScoreHistogram": {
         "properties": {
           "edges": {
@@ -3482,6 +5206,47 @@
         ],
         "title": "StatsOut"
       },
+      "SupplierStat": {
+        "properties": {
+          "supplier": {
+            "type": "string",
+            "title": "Supplier"
+          },
+          "rolls": {
+            "type": "integer",
+            "title": "Rolls"
+          },
+          "accepted": {
+            "type": "integer",
+            "title": "Accepted"
+          },
+          "avg_points_per_100_sq_yd": {
+            "type": "number",
+            "title": "Avg Points Per 100 Sq Yd"
+          },
+          "defects": {
+            "type": "integer",
+            "title": "Defects"
+          },
+          "top_defect_types": {
+            "items": {
+              "$ref": "#/components/schemas/TypeCount"
+            },
+            "type": "array",
+            "title": "Top Defect Types"
+          }
+        },
+        "type": "object",
+        "required": [
+          "supplier",
+          "rolls",
+          "accepted",
+          "avg_points_per_100_sq_yd",
+          "defects",
+          "top_defect_types"
+        ],
+        "title": "SupplierStat"
+      },
       "TemplateConfig": {
         "properties": {
           "max_features": {
@@ -3629,6 +5394,24 @@
         ],
         "title": "TuneReport"
       },
+      "TypeCount": {
+        "properties": {
+          "defect_type": {
+            "type": "string",
+            "title": "Defect Type"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "defect_type",
+          "count"
+        ],
+        "title": "TypeCount"
+      },
       "ValidationError": {
         "properties": {
           "loc": {
@@ -3668,6 +5451,39 @@
           "type"
         ],
         "title": "ValidationError"
+      },
+      "YardPoints": {
+        "properties": {
+          "yard": {
+            "type": "integer",
+            "title": "Yard"
+          },
+          "from_m": {
+            "type": "number",
+            "title": "From M"
+          },
+          "to_m": {
+            "type": "number",
+            "title": "To M"
+          },
+          "raw": {
+            "type": "integer",
+            "title": "Raw"
+          },
+          "points": {
+            "type": "integer",
+            "title": "Points"
+          }
+        },
+        "type": "object",
+        "required": [
+          "yard",
+          "from_m",
+          "to_m",
+          "raw",
+          "points"
+        ],
+        "title": "YardPoints"
       }
     }
   }

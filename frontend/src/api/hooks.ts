@@ -1,6 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { client, postForm, unwrap } from "./client";
-import type { BatchAccepted, InspectionOut, Method, ProfileOut } from "./types";
+import type { BatchAccepted, CalibrationOut, CaptureResult, InspectionOut, Method, ProfileOut, RollIn, RollPatch } from "./types";
 
 /** Query keys in one place so mutations can invalidate precisely. */
 export const keys = {
@@ -10,6 +10,9 @@ export const keys = {
   inspections: (params: InspectionListParams) => ["inspections", params] as const,
   inspection: (id: number) => ["inspection", id] as const,
   bitPlanes: (id: number) => ["bit-planes", id] as const,
+  rolls: (params: RollListParams) => ["rolls", params] as const,
+  roll: (id: number) => ["roll", id] as const,
+  rollStats: ["roll-stats"] as const,
   mvtec: ["mvtec"] as const,
   mvtecSamples: (category: string) => ["mvtec", "samples", category] as const,
   benchmark: (source: string) => ["benchmark", source] as const,
@@ -187,5 +190,139 @@ export function useBitPlanes(inspectionId: number | undefined) {
     enabled: inspectionId !== undefined,
     placeholderData: keepPreviousData,
     staleTime: Infinity, // the planes of a stored image never change
+  });
+}
+
+export interface RulerInput {
+  imageWidth: number;
+  imageHeight: number;
+  p1: { x: number; y: number };
+  p2: { x: number; y: number };
+  distanceMm: number;
+}
+
+/** Calibrations change what every later inspection of the profile reports, so the profile list is refreshed. */
+function useRefreshProfiles() {
+  const queryClient = useQueryClient();
+  return () => queryClient.invalidateQueries({ queryKey: keys.profiles });
+}
+
+/** Find the printed marker in a photo and store mm per pixel in the profile. */
+export function useCalibrateMarker(profileId: number) {
+  const refresh = useRefreshProfiles();
+  return useMutation({
+    mutationFn: ({ image, sideMm }: { image: File; sideMm: number }) => {
+      const form = new FormData();
+      form.append("image", image);
+      form.append("side_mm", String(sideMm));
+      return postForm<CalibrationOut>(`/profiles/${profileId}/calibration/marker`, form);
+    },
+    onSuccess: () => void refresh(),
+  });
+}
+
+/** Two clicked points on a ruler and the real distance between them. */
+export function useCalibrateRuler(profileId: number) {
+  const refresh = useRefreshProfiles();
+  return useMutation({
+    mutationFn: ({ imageWidth, imageHeight, p1, p2, distanceMm }: RulerInput) => {
+      const form = new FormData();
+      form.append("image_width", String(imageWidth));
+      form.append("image_height", String(imageHeight));
+      form.append("x1", String(p1.x));
+      form.append("y1", String(p1.y));
+      form.append("x2", String(p2.x));
+      form.append("y2", String(p2.y));
+      form.append("distance_mm", String(distanceMm));
+      return postForm<CalibrationOut>(`/profiles/${profileId}/calibration/ruler`, form);
+    },
+    onSuccess: () => void refresh(),
+  });
+}
+
+export function useClearCalibration(profileId: number) {
+  const refresh = useRefreshProfiles();
+  return useMutation({
+    mutationFn: () => unwrap(client.DELETE("/profiles/{profile_id}/calibration", { params: { path: { profile_id: profileId } } })),
+    onSuccess: () => void refresh(),
+  });
+}
+
+export interface RollListParams {
+  status?: "open" | "complete";
+  q?: string;
+  limit?: number;
+}
+
+export function useRolls(params: RollListParams = {}) {
+  return useQuery({
+    queryKey: keys.rolls(params),
+    queryFn: () => unwrap(client.GET("/rolls", { params: { query: params } })),
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useRoll(id: number | undefined) {
+  return useQuery({
+    queryKey: keys.roll(id ?? -1),
+    queryFn: () => unwrap(client.GET("/rolls/{roll_id}", { params: { path: { roll_id: id! } } })),
+    enabled: id !== undefined,
+  });
+}
+
+export function useRollStats() {
+  return useQuery({ queryKey: keys.rollStats, queryFn: () => unwrap(client.GET("/rolls/stats")) });
+}
+
+/** Everything a roll change can touch: the lists, the roll, the dashboard KPIs, and the inspections its captures are. */
+function useRefreshRolls() {
+  const queryClient = useQueryClient();
+  return () => {
+    for (const key of [["rolls"], ["roll"], ["roll-stats"], ["inspections"], ["stats"]]) void queryClient.invalidateQueries({ queryKey: key });
+  };
+}
+
+export function useCreateRoll() {
+  const refresh = useRefreshRolls();
+  return useMutation({ mutationFn: (body: RollIn) => unwrap(client.POST("/rolls", { body })), onSuccess: refresh });
+}
+
+export function useUpdateRoll(id: number) {
+  const refresh = useRefreshRolls();
+  return useMutation({
+    mutationFn: (body: RollPatch) => unwrap(client.PATCH("/rolls/{roll_id}", { params: { path: { roll_id: id } }, body })),
+    onSuccess: refresh,
+  });
+}
+
+export function useDeleteRoll() {
+  const refresh = useRefreshRolls();
+  return useMutation({
+    mutationFn: (id: number) => unwrap(client.DELETE("/rolls/{roll_id}", { params: { path: { roll_id: id } } })),
+    onSuccess: refresh,
+  });
+}
+
+/** Inspect pictures with the roll's profile and place them at their metre marks. */
+export function useAddCaptures(rollId: number) {
+  const refresh = useRefreshRolls();
+  return useMutation({
+    mutationFn: ({ files, positions, config }: { files: File[]; positions: number[]; config?: Record<string, unknown> }) => {
+      const form = new FormData();
+      files.forEach((f) => form.append("images", f));
+      form.append("positions", JSON.stringify(positions));
+      if (config) form.append("config", JSON.stringify(config));
+      return postForm<CaptureResult>(`/rolls/${rollId}/captures`, form);
+    },
+    onSuccess: refresh,
+  });
+}
+
+export function useDeleteCapture(rollId: number) {
+  const refresh = useRefreshRolls();
+  return useMutation({
+    mutationFn: (captureId: number) =>
+      unwrap(client.DELETE("/rolls/{roll_id}/captures/{capture_id}", { params: { path: { roll_id: rollId, capture_id: captureId } } })),
+    onSuccess: refresh,
   });
 }

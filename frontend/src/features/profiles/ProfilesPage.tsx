@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useProfiles } from "@/api/hooks";
-import { METHOD_LABELS, type Method } from "@/api/types";
+import { useMethodLabel } from "@/lib/methodLabel";
 import { requireNav } from "@/app/nav";
 import { EmptyState } from "@/components/EmptyState";
 import { Stagger, StaggerItem } from "@/components/motion";
@@ -16,6 +16,7 @@ import { ProfileDetail } from "./ProfileDetail";
 const item = requireNav("/profiles");
 
 export function ProfilesPage() {
+  const labelOf = useMethodLabel();
   const { data: profiles, isPending, isError } = useProfiles();
   const activeId = useUi((s) => s.profileId);
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -65,7 +66,7 @@ export function ProfilesPage() {
                           <span className="truncate text-sm font-medium">{p.name}</span>
                           {activeId === p.id && <Badge variant="default">active</Badge>}
                         </div>
-                        <div className="text-xs text-muted-foreground">{METHOD_LABELS[p.method as Method] ?? p.method}</div>
+                        <div className="text-xs text-muted-foreground">{labelOf(p.method)}</div>
                       </div>
                       <div className="num shrink-0 text-right text-xs">
                         <div className="text-primary">{p.report.threshold.toFixed(2)}</div>

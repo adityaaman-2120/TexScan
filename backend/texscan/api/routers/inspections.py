@@ -2,7 +2,7 @@ from datetime import date, datetime, time, timedelta, timezone
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, Query, Response
-from sqlmodel import Session, col, func, select
+from sqlmodel import Session, col, delete, func, select
 
 from texscan.api import storage
 from texscan.api.common import ApiError, to_data_uri
@@ -10,7 +10,7 @@ from texscan.api.schemas import BitPlane, BitPlanesOut, InspectionOut, Inspectio
 from texscan.api.service import inspection_out, inspection_summary
 from texscan.db import get_session
 from texscan.imageio import read_image
-from texscan.models import Inspection
+from texscan.models import Inspection, RollCapture
 from texscan.pipeline.bitplanes import bit_planes
 
 router = APIRouter(prefix="/inspections", tags=["inspections"])
@@ -70,7 +70,7 @@ def get_inspection(inspection_id: int, session: Session = Depends(get_session)) 
 
 @router.get("/{inspection_id}/bit-planes", response_model=BitPlanesOut)
 def get_bit_planes(inspection_id: int, session: Session = Depends(get_session)) -> BitPlanesOut:
-    """The eight bit planes of the inspection's grayscale image, most significant first (a syllabus view, not used by detection)."""
+    """The eight bit planes of the inspection's grayscale image, most significant first (a viewer only, not used by detection)."""
     _get_or_404(session, inspection_id)
     path = storage.file_path(inspection_id, "gray.png")
     if path is None:
@@ -90,6 +90,7 @@ def get_bit_planes(inspection_id: int, session: Session = Depends(get_session)) 
 @router.delete("/{inspection_id}", status_code=204)
 def delete_inspection(inspection_id: int, session: Session = Depends(get_session)) -> Response:
     row = _get_or_404(session, inspection_id)
+    session.exec(delete(RollCapture).where(col(RollCapture.inspection_id) == inspection_id))  # it may be a capture of a roll
     session.delete(row)
     session.commit()
     storage.delete_images(inspection_id)

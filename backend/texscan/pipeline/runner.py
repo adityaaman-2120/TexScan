@@ -11,6 +11,7 @@ from texscan.pipeline.denoise import denoise
 from texscan.pipeline.detectors import DETECTORS
 from texscan.pipeline.enhance import Histogram, enhance
 from texscan.pipeline.load import load_and_normalize, resize_longest
+from texscan.pipeline.measure import mm_per_working_pixel, with_physical_size
 from texscan.pipeline.overlay import edges_overlay
 from texscan.pipeline.recorder import Recorder
 from texscan.pipeline.segment import morphology_cleanup
@@ -69,6 +70,7 @@ def run_pipeline(
     """
     cfg = config or PipelineConfig()
     rec = Recorder()
+    full_shape = image.shape
     image, crop = _crop_input(rec, image, cfg)
     gray = rec.step("load_and_normalize", load_and_normalize, image, cfg.max_side)
     original = resize_longest(image, cfg.max_side)
@@ -80,6 +82,9 @@ def run_pipeline(
     rec.stages["mask_clean"] = mask
     defects = rec.step("extract_defects", extract_defects, mask, gray)
     defects = rec.step("classify_defects", classify_defects, defects)
+    if cfg.calibration is not None:
+        scale = mm_per_working_pixel(cfg.calibration, full_shape, image.shape, gray.shape)
+        defects = rec.step("measure_defects", with_physical_size, defects, scale)
     rec.stages["overlay"] = rec.step("edges_overlay", edges_overlay, original, mask)
     percent = 100.0 * float(np.count_nonzero(mask)) / mask.size
     return PipelineResult(

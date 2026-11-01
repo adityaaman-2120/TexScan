@@ -2,15 +2,21 @@ import { API_BASE } from "@/api/client";
 import { ApiError, failureMessage, NETWORK_MESSAGE } from "@/api/errors";
 
 /** What a PDF report is about: one inspection, or every inspection of one batch. */
-export type ReportTarget = { kind: "inspection"; id: number } | { kind: "batch"; id: string };
+export type ReportTarget = { kind: "inspection"; id: number } | { kind: "batch"; id: string } | { kind: "roll"; id: number };
 
 export function reportUrl(target: ReportTarget): string {
-  const path = target.kind === "inspection" ? `/inspections/${target.id}/report.pdf` : `/batches/${encodeURIComponent(target.id)}/report.pdf`;
+  const path =
+    target.kind === "inspection"
+      ? `/inspections/${target.id}/report.pdf`
+      : target.kind === "roll"
+        ? `/rolls/${target.id}/report.pdf`
+        : `/batches/${encodeURIComponent(target.id)}/report.pdf`;
   return `${API_BASE}${path}`;
 }
 
 /** Name used when the server's Content-Disposition cannot be read. */
 export function fallbackReportName(target: ReportTarget): string {
+  if (target.kind === "roll") return `texscan-roll-${target.id}.pdf`;
   return target.kind === "inspection" ? `texscan-inspection-${target.id}.pdf` : `texscan-batch-${target.id.slice(0, 8)}.pdf`;
 }
 

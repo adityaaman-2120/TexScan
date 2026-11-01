@@ -1,12 +1,18 @@
+<p align="center"><img src="frontend/public/favicon.svg" alt="TexScan logo" width="96" height="96"></p>
+
 # TexScan
 
-Surface and fabric **defect inspection** with **classical image processing only**: no deep learning, no trained weights.
-Drop in a photo of a textile (or tile, leather, wood…), and TexScan says PASS or FAIL, outlines every defect, names its type
-(hole, tear line, stain, thread / fibre) and lets you open up every processing step to see how it got there.
+**Affordable fabric inspection for small textile units.** Add a photo of the fabric, or point a camera at it, and TexScan says PASS or FAIL,
+outlines every defect, and tells you what it is, how big it is and where it sits. It runs on an ordinary computer and a phone camera,
+with **classical image processing only**: no deep learning, no trained weights, no cloud.
 
-It is a college Image Processing project, so the emphasis is on *seeing* the maths: every stage is a small pure function
-with its formula in the docstring, and the app has a page for each idea (histograms, FFT, filtering, registration, morphology, compression, bit planes…).
-The **About** page in the app maps each lab syllabus topic to the page and source file where it lives.
+TexScan has two modes. **Product mode** (the default) is the everyday workflow: Inspect, Live, Roll Inspection, History,
+Reports, Dashboard and Profiles, with one Sensitivity control (Low / Medium / High) instead of technical sliders.
+**Engineering mode** (Settings) adds an Engineering section for tuning and diagnosing the inspection engine: Pipeline X-Ray,
+Spectrum Studio, Method Arena, Robustness Lab and a Bit-Plane viewer, plus the full advanced panel on Inspect.
+
+Under the hood every stage is a small pure function with its formula in the docstring.
+[`docs/SYLLABUS_MAPPING.md`](docs/SYLLABUS_MAPPING.md) maps each image-processing lab syllabus item to the exact file and function that implements it.
 
 <!-- Screenshots: save PNGs to docs/screenshots/ (e.g. 1400 px wide, dark theme) and keep these paths, or edit them. -->
 | Inspect | Pipeline X-Ray | Spectrum Studio |
@@ -36,7 +42,7 @@ Everything after detection is shared: clean the mask with morphology, measure ea
 ```mermaid
 flowchart LR
   subgraph Browser["Browser: React + Vite + TypeScript"]
-    UI["Pages: Inspect, Live, Batch, History,<br/>Arena, Robustness, Spectrum,<br/>Profiles, Dashboard, About"]
+    UI["Product: Inspect, Live, Roll, Batch, History,<br/>Reports, Dashboard, Profiles<br/>Engineering: X-Ray, Spectrum, Arena,<br/>Robustness, Bit-planes"]
     Q["TanStack Query<br/>typed client from OpenAPI"]
     UI --> Q
   end
@@ -162,7 +168,7 @@ make setup        # backend venv + pip install -e backend[dev], then npm install
 make dev          # backend on :8000 and frontend on :5173, one terminal
 ```
 
-Open <http://localhost:5173>. API docs are at <http://localhost:8000/docs>.
+Open <http://localhost:5173> for the public landing page and <http://localhost:5173/app> for the app. API docs are at <http://localhost:8000/docs>.
 
 Without make (Windows PowerShell):
 ```powershell
@@ -199,16 +205,38 @@ Environment variables: `TEXSCAN_DB` (SQLite file, default `data/texscan.db`), `T
 4. Results land in `data/results/`. The Method Arena also lists the MVTec samples (with ground-truth masks) once `MVTEC_PATH` is set, and its Benchmark tab draws the table as a heatmap.
 
 ## The app
+**Where things are.** `/` is the public landing page (the problem, how it works in three steps, a live demo, and why the results are explainable). The app is under `/app`:
+`/app/inspect`, `/app/live`, `/app/roll`, and so on. This README writes the page paths without the `/app` prefix. Old links such as `/inspect` are redirected to `/app/inspect`.
+The landing demo generates a woven sample in the browser, sends it to the API's `/arena` endpoint (which runs the inspection and stores nothing) and shows the real verdict and outline; nothing is saved to History.
+
 All pages are registered once in `frontend/src/app/nav.ts`; the sidebar, the command palette and the router read from it. Dark theme by default (light toggle in the top bar).
 
-**Keyboard**: `Ctrl/Cmd+K` command palette, `Ctrl/Cmd+B` sidebar, `U` upload (Inspect), `X` pipeline X-Ray (Inspect), `Ctrl/Cmd+V` paste an image, `←` `→` Space Esc in the X-Ray.
+### Product mode and Engineering mode
+**Settings** (bottom of the sidebar, or `Ctrl/Cmd+K` then "Engineering mode") has an *Engineering mode* switch. It is remembered between visits and is off by default.
+
+| | Product mode (default) | Engineering mode |
+|---|---|---|
+| Sidebar | Inspect, Live, Roll Inspection, History, Reports, Dashboard, Profiles | the same, plus an **Engineering** section: Pipeline X-Ray, Spectrum Studio, Method Arena, Robustness Lab, Bit-Plane viewer |
+| Inspect controls | one **Sensitivity** choice (Low / Medium / High) and the fabric profile | method, profile and the full Advanced panel of sliders |
+| Inspect results | PASS / FAIL, the defects on the photo, and for each defect its type, size (Small / Medium / Large) and location (for example "Top left") | plus before / after, histograms, stage timings, heatmap and edge overlays, X-Ray |
+| History detail | defects, profile, PDF report | plus every stage image, timings and the settings used |
+
+**Sensitivity** maps to config presets relative to the active profile (or the defaults): *Low* raises the detection threshold by 1.5x and the smallest counted defect by 2x,
+*Medium* changes nothing, *High* lowers the threshold to 0.7x and the smallest defect to 0.5x (`frontend/src/features/inspect/sensitivity.ts`).
+Opening an engineering page while the mode is off shows a short page with a button to turn it on.
+
+**Keyboard**: `Ctrl/Cmd+K` command palette, `Ctrl/Cmd+B` sidebar, `U` upload (Inspect), `X` pipeline X-Ray (Inspect, Engineering mode), `Ctrl/Cmd+V` paste an image, `←` `→` Space Esc in the X-Ray.
 Letter shortcuts are ignored while you type or a menu / dialog is open.
 
 ### Inspect
 `/inspect`: drop, browse or paste an image.
-* Left panel: method, profile, and an *Advanced* section with sliders (denoise kernel, threshold, minimum area, cleanup kernel, notch radius, window) and the **Bit-plane viewer** (all eight planes of the grayscale image, click one to enlarge). A change re-runs the inspection after a 350 ms pause; re-runs of the same image replace each other in History.
-* Result: animated PASS / FAIL, a zoomable viewer (scroll, drag, double-click to fit) with overlay modes Boxes / Mask / Edges / Heatmap, a before / after wipe, the defect table, histograms before and after enhancement and a timing chart.
-* **Pipeline X-Ray** (`X`): step through every stage image with a plain-English explanation and formula.
+* Left panel: in product mode, **Sensitivity** and the fabric profile. In Engineering mode, method, profile and an *Advanced* section with sliders (denoise kernel, threshold, inspect area, minimum area, cleanup kernel, notch radius, window). A change re-runs the inspection after a 350 ms pause; re-runs of the same image replace each other in History.
+* Result: animated PASS / FAIL and a zoomable viewer (scroll, drag, double-click to fit) with Boxes / Highlight overlays, then a list of the defects with type, size and location. Engineering mode adds Edges / Heatmap overlays, a before / after wipe, histograms and a timing chart.
+* **Check many photos** (top right) opens Batch.
+
+### Engineering pages
+* **Pipeline X-Ray** (`/xray`, also `X` on Inspect): every stage image of one inspection with a plain-English explanation, formula and timing, and a step-by-step walkthrough.
+* **Bit-Plane viewer** (`/bit-planes`): the eight planes of the grayscale image of an upload or of a past inspection.
 * **Download report**: a two-page PDF (see [PDF reports](#pdf-reports)).
 
 ### Spectrum Studio
@@ -231,7 +259,7 @@ Capture uses the same settings, so its verdict matches what was on screen.
 **Phone camera on the same Wi-Fi.** Browsers allow the camera only on `https://` or `localhost`, so plain `http://<laptop-ip>:5173` will not work.
 1. Put the phone on the same Wi-Fi as the computer (not a guest network; those often isolate devices).
 2. Run `make dev-lan` (or `.\dev.ps1 -Lan`). Vite serves HTTPS with a self-signed certificate.
-3. Open the `Network:` address Vite prints (for example `https://192.168.1.23:5173/`) on the phone and go to **Live**.
+3. Open the `Network:` address Vite prints (for example `https://192.168.1.23:5173/`) on the phone, add `/app/live` to it (or open the app and go to **Live**).
 4. Accept the one-time certificate warning (iPhone Safari: Show Details, then visit this website; Android Chrome: Advanced, then Proceed).
 5. Tap **Start camera**. The rear camera is used by default.
 
@@ -239,7 +267,7 @@ If the phone cannot connect, allow Node.js through Windows Defender Firewall for
 
 ### Batch, History, Dashboard, Profiles
 * **Batch**: drop a folder or many images; each is a tile that flips to its overlay with PASS / FAIL as the server finishes it (WebSocket progress with a polling fallback). More than 100 images run as consecutive batches. Summary, failed images, **Export CSV** (file names neutralised against spreadsheet formulas) and **Download report**.
-* **History**: search and filter by decision, method, profile, date range or batch; a row opens every stage image, defects, timings, settings, the X-Ray, a PDF report and delete. `/history?id=12` deep-links.
+* **History**: search and filter by decision, scan type, profile, date range or batch; a row opens the result, a PDF report and delete (Engineering mode adds the stage images, timings, settings and the X-Ray). `/history?id=12` deep-links.
 * **Dashboard**: total, pass rate, average processing time, most common defect, inspections per day, defect-type donut, pass rate by profile.
 * **Profiles**: upload 5 to 20 good samples to learn a threshold and minimum area for a material; the detail view shows the leave-one-out pass rate and a histogram of the good samples' scores.
 
@@ -247,9 +275,40 @@ If the phone cannot connect, allow Node.js through Windows Defender Firewall for
 * **Method Arena**: all four methods on one image side by side with overlay, mask or error map (green found, red false alarm, amber missed), IoU, Dice, precision, recall and runtime. Pixel F1 is mathematically Dice, so they are shown as one metric. The **Benchmark** tab is the method × category heatmap of `make eval`.
 * **Robustness Lab**: degrade an image step by step (noise, blur, brightness, JPEG quality) and chart defect area with a verdict marker per level. The JPEG sweep is the compression experiment: file size, ratio, PSNR and SSIM.
 
-### About
-`/about` maps each lab syllabus topic (read image, noise, histogram, edges, rotation / translation by registration, bit planes, enhancement, FFT, spatial and frequency smoothing / sharpening, compression, morphology, restoration)
-to the page where you can see it and the source file that implements it, with honest notes where coverage is partial.
+### Real-world sizes (calibration)
+Every defect reports its **length** (the longest side of its minimum-area rotated rectangle), **width** and **area** in pixels. Once a profile is calibrated they are also given in **millimetres and inches**;
+without a calibration the app shows pixels and a **Not calibrated** badge with a link to fix it.
+
+1. **Profiles**, pick a profile, **Calibrate sizes** (`/profiles/{id}/calibration`).
+2. **Print the marker**: choose the side of the black square (10 to 150 mm) and download the PDF. It is drawn at its exact size with a 100 mm check bar; print at 100% (Actual size) and check the bar with a ruler.
+3. **Calibrate** with a photo that shows the marker (the app finds it and measures its side), or with a **ruler**: add a photo, click the two ends of a known length and type the distance (mm, cm or in).
+4. Keep the camera where it will be for inspection. Moving it or zooming changes the scale, so calibrate again.
+
+The scale is stored in the profile as `mm_per_pixel` measured on a photo of a given size, which makes it carry over to other resolutions of the same setup, to centre crops and to the pipeline's own resizing
+(`mm_per_working_pixel` in `backend/texscan/pipeline/measure.py`). Re-tuning a profile under the same name keeps its calibration. Sizes also appear in the History detail and in the PDF report.
+
+**Accuracy.** On a synthetic scene (a 50 mm marker and a 200 mm line defect) the measured length was within 0.5% with the FFT method in a browser run, and within 3% is asserted in `backend/tests/test_measure.py` for marker and ruler calibration,
+rotated lines, other resolutions and centre crops. The Gabor and local-statistics methods draw looser masks, so their lengths run about 6 to 10% long and their widths much wider on the same line; use a profile tuned with the FFT or golden-template method when millimetre accuracy matters.
+Measurements are 2-D: they assume the fabric is flat and square to the camera at the distance used for calibration.
+
+### Reports
+`/reports` lists recent inspections and batches, each with a **PDF** button (see [PDF reports](#pdf-reports)).
+
+### Roll Inspection (four-point grading)
+`/roll` grades a whole roll of fabric with the **four-point system** (ASTM D5430). **The exact rules and the formula are in [`docs/GRADING.md`](docs/GRADING.md)**,
+with their sources and a list of what to verify against the standard (the standard's text is paywalled; the rules there come from published descriptions, and the hole rule and the 40-point limit are settings).
+
+1. **New roll**: roll ID, supplier, fabric type, **profile**, cuttable width, length. The profile must be size-calibrated ([Real-world sizes](#real-world-sizes-calibration)), because points come from real defect lengths.
+2. **Add pictures** with the metre mark of each picture's top edge: choose many images and fill the marks (first mark, then every N metres), or **Capture from Live** (`/live?roll=ID&at=M`).
+   Each picture is inspected with the roll's profile and kept as a normal inspection.
+3. **Scoring**: a defect gets 1, 2, 3 or 4 points by its longest dimension (up to 3, 6, 9 inches, or more); holes follow the roll's hole rule; no yard is charged more than 4 points; a defect running along more than a yard scores 4 in every yard.
+   Points per 100 sq yd = total points x 3600 / (yards inspected x width in inches). The roll is **accepted** at or below the limit (default 40, set per roll), otherwise rejected.
+4. **Roll page**: result, points per 100 sq yd, total points, a **defect map** (the roll as a vertical strip, a marker per defect coloured by points; click one to see its picture), the defect list, the pictures,
+   and warnings for overlapping or missing stretches. **Finish roll** grades it over its full length; until then the score is provisional.
+5. **Report**: a PDF with the roll details, the score and grade, the defect map, the defect list with position and points, the rules used, and signature lines for the QC inspector and the supplier.
+6. **History** has a Rolls tab, and the **Dashboard** shows rolls inspected, acceptance rate, average points per 100 sq yd and the top defect types by supplier (completed rolls).
+
+Limits: the score is only as good as the defect lengths (see the accuracy note above) and the `hole` label (a heuristic classifier); captures must not overlap, or a defect is counted twice (the app warns).
 
 ### PDF reports
 **Download report** buttons on Inspect, the History detail panel and the Batch results produce clean A4 PDFs (ReportLab, `backend/texscan/report/`):
@@ -266,6 +325,11 @@ to the page where you can see it and the source file that implements it, with ho
 | `GET /inspections`, `GET/DELETE /inspections/{id}` | history; filters `decision`, `profile_id`, `method`, `q`, `batch_id`, `date_from`, `date_to`, `limit`, `offset` |
 | `GET /inspections/{id}/bit-planes` | the eight bit planes of the stored grayscale image (PNG data URIs, MSB first) |
 | `GET /inspections/{id}/report.pdf`, `GET /batches/{batch_id}/report.pdf` | PDF reports |
+| `POST /profiles/{id}/calibration/marker` (photo + `side_mm`), `POST /profiles/{id}/calibration/ruler` (image size, two points, `distance_mm`), `DELETE /profiles/{id}/calibration` | store or clear the profile's mm per pixel |
+| `GET /calibration/marker.pdf?side_mm=50` | the printable calibration marker at its exact size |
+| `POST /rolls`, `GET /rolls`, `GET/PATCH/DELETE /rolls/{id}` | create, list, read, edit (limit, hole rule, mark complete) and delete rolls; reads include the score, defects and warnings |
+| `POST /rolls/{id}/captures` (images + `positions`), `DELETE /rolls/{id}/captures/{capture_id}` | add pictures at metre marks, remove one |
+| `GET /rolls/{id}/report.pdf`, `GET /rolls/stats` | the roll report; roll KPIs for the dashboard |
 | `POST /profiles/autotune`, `GET /profiles`, `GET/DELETE /profiles/{id}` | tune from 5 to 20 good images; history survives profile deletion |
 | `POST /spectrum`, `POST /spectrum/apply` | spectrum with peaks; notch mask and radial presets → residual, mask, defects |
 | `POST /arena` | several methods on one image (optional ground-truth mask → IoU, Dice, precision, recall) |

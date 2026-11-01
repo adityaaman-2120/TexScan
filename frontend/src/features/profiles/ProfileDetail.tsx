@@ -1,11 +1,13 @@
-import { Check, TriangleAlert, Trash2 } from "lucide-react";
+import { Check, Ruler, TriangleAlert, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { useDeleteProfile } from "@/api/hooks";
-import { METHOD_LABELS, type Method, type ProfileOut } from "@/api/types";
+import type { ProfileOut } from "@/api/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useMethodLabel } from "@/lib/methodLabel";
 import { cn } from "@/lib/utils";
 import { useUi } from "@/store/ui";
 import { ScoreHistogram } from "./ScoreHistogram";
@@ -23,6 +25,8 @@ function Fact({ label, value, hint, tone }: { label: string; value: React.ReactN
 export function ProfileDetail({ profile, onDeleted }: { profile: ProfileOut; onDeleted: () => void }) {
   const { report } = profile;
   const activeId = useUi((s) => s.profileId);
+  const engineering = useUi((s) => s.engineering);
+  const labelOf = useMethodLabel();
   const setProfileId = useUi((s) => s.setProfileId);
   const remove = useDeleteProfile();
   const [confirming, setConfirming] = useState(false);
@@ -35,11 +39,11 @@ export function ProfileDetail({ profile, onDeleted }: { profile: ProfileOut; onD
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <CardTitle className="truncate text-lg">{profile.name}</CardTitle>
-            <Badge variant="outline">{METHOD_LABELS[profile.method as Method] ?? profile.method}</Badge>
+            <Badge variant="outline">{labelOf(profile.method)}</Badge>
             {active && <Badge variant="default">active</Badge>}
           </div>
           <CardDescription className="mt-1">
-            Learned from {report.n_images} good images · {report.quantile}th percentile · {new Date(profile.created_at).toLocaleDateString()}
+            Learned from {report.n_images} good images{engineering ? ` · ${report.quantile}th percentile` : ""} · {new Date(profile.created_at).toLocaleDateString()}
           </CardDescription>
         </div>
         <div className="flex shrink-0 flex-wrap items-center gap-2">
@@ -76,12 +80,30 @@ export function ProfileDetail({ profile, onDeleted }: { profile: ProfileOut; onD
       </CardHeader>
 
       <CardContent className="space-y-5">
-        <dl className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <Fact label="Learned threshold" value={report.threshold.toFixed(2)} hint={report.threshold_param} tone="text-primary" />
-          <Fact label="Minimum area" value={`${report.min_area} px`} hint="smaller regions are ignored" />
-          <Fact label="Expected pass rate" value={`${Math.round(loo * 100)}%`} hint="leave-one-out estimate" tone={loo >= 0.95 ? "text-success" : loo >= 0.8 ? "text-warning" : "text-destructive"} />
-          <Fact label="Largest false region" value={`${report.fp_max_area} px`} hint={`${report.fp_component_count} found in the good samples`} />
+        <dl className={cn("grid grid-cols-2 gap-3", engineering && "lg:grid-cols-4")}>
+          {engineering && <Fact label="Learned threshold" value={report.threshold.toFixed(2)} hint={report.threshold_param} tone="text-primary" />}
+          <Fact label={engineering ? "Minimum area" : "Smallest defect"} value={`${report.min_area} px`} hint="smaller regions are ignored" />
+          <Fact label="Expected pass rate" value={`${Math.round(loo * 100)}%`} hint={engineering ? "leave-one-out estimate" : "of good fabric, expected to pass"} tone={loo >= 0.95 ? "text-success" : loo >= 0.8 ? "text-warning" : "text-destructive"} />
+          {engineering && <Fact label="Largest false region" value={`${report.fp_max_area} px`} hint={`${report.fp_component_count} found in the good samples`} />}
         </dl>
+
+        <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-muted/30 px-3.5 py-3">
+          <Ruler className="size-4 text-primary" aria-hidden />
+          <div className="min-w-0 flex-1">
+            <div className="text-sm font-medium">Size calibration</div>
+            <div className="text-xs text-muted-foreground">
+              {profile.config.calibration
+                ? `Defects are reported in millimetres and inches (1 pixel = ${profile.config.calibration.mm_per_pixel.toPrecision(3)} mm on a ${profile.config.calibration.image_long_side} px photo).`
+                : "Not calibrated: defect sizes are shown in pixels."}
+            </div>
+          </div>
+          <Badge variant={profile.config.calibration ? "pass" : "warn"} dot>
+            {profile.config.calibration ? "Calibrated" : "Not calibrated"}
+          </Badge>
+          <Button variant="outline" size="sm" asChild>
+            <Link to={`/profiles/${profile.id}/calibration`}>{profile.config.calibration ? "Recalibrate" : "Calibrate sizes"}</Link>
+          </Button>
+        </div>
 
         {report.warnings.length > 0 && (
           <ul className="space-y-1.5 rounded-lg border border-warning/30 bg-warning/10 px-3.5 py-3 text-[12.5px] text-warning" aria-label="Warnings">
@@ -91,10 +113,12 @@ export function ProfileDetail({ profile, onDeleted }: { profile: ProfileOut; onD
           </ul>
         )}
 
-        <div>
-          <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Good-sample scores</h3>
-          <ScoreHistogram report={report} />
-        </div>
+        {engineering && (
+          <div>
+            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Good-sample scores</h3>
+            <ScoreHistogram report={report} />
+          </div>
+        )}
       </CardContent>
     </Card>
   );

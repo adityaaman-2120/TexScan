@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Segmented } from "@/components/ui/segmented";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { fromDataTransfer, fromFileList, type Picked, type PickResult } from "@/features/batch/pickFiles";
+import { useMethodLabel } from "@/lib/methodLabel";
 import { cn } from "@/lib/utils";
 
 const MIN_IMAGES = 5;
@@ -23,6 +24,7 @@ const QUANTILES = ["99", "99.5", "99.9"] as const;
 type Method = (typeof METHODS)[number]["value"];
 
 export function CreateProfile({ onCreated }: { onCreated: (id: number) => void }) {
+  const labelOf = useMethodLabel();
   const autotune = useAutotune();
   const [name, setName] = useState("");
   const [method, setMethod] = useState<Method>("gabor");
@@ -83,7 +85,7 @@ export function CreateProfile({ onCreated }: { onCreated: (id: number) => void }
             <div className="text-xs font-medium">Method</div>
             <Select value={method} onValueChange={(v) => setMethod(v as Method)} disabled={busy}>
               <SelectTrigger aria-label="Method"><SelectValue /></SelectTrigger>
-              <SelectContent>{METHODS.map((m) => <SelectItem key={m.value} value={m.value} hint={m.hint}>{m.label}</SelectItem>)}</SelectContent>
+              <SelectContent>{METHODS.map((m) => <SelectItem key={m.value} value={m.value} hint={m.hint}>{labelOf(m.value)}</SelectItem>)}</SelectContent>
             </Select>
           </div>
           <div className="space-y-1.5">

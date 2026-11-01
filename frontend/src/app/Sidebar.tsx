@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { PanelLeftClose, PanelLeftOpen, Settings } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useHealth } from "@/api/hooks";
 import { Logo } from "@/components/Logo";
@@ -8,7 +8,7 @@ import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { useUi } from "@/store/ui";
-import { NAV_GROUPS, NAV_ITEMS, type NavItem } from "./nav";
+import { navGroups, sidebarItems, type NavItem } from "./nav";
 
 type Variant = "desktop" | "mobile";
 
@@ -79,14 +79,18 @@ function NavRow({ item, collapsed, variant, onNavigate }: { item: NavItem; colla
 
 export function SidebarBody({ collapsed, variant, onNavigate }: { collapsed: boolean; variant: Variant; onNavigate?: () => void }) {
   const toggleSidebar = useUi((s) => s.toggleSidebar);
+  const engineering = useUi((s) => s.engineering);
+  const setSettingsOpen = useUi((s) => s.setSettingsOpen);
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className={cn("flex h-14 shrink-0 items-center border-b", collapsed ? "justify-center" : "px-4")}>
-        <Logo collapsed={collapsed} />
+        <a href="/" aria-label="TexScan home" className="rounded-md outline-none focus-visible:ring-[3px] focus-visible:ring-ring">
+          <Logo collapsed={collapsed} />
+        </a>
       </div>
 
       <nav aria-label="Main" className="flex-1 space-y-5 overflow-y-auto px-2.5 py-4">
-        {NAV_GROUPS.map((group) => (
+        {navGroups(engineering).map((group) => (
           <div key={group}>
             {collapsed ? (
               <div className="mx-3 mb-2 h-px bg-border" />
@@ -94,7 +98,7 @@ export function SidebarBody({ collapsed, variant, onNavigate }: { collapsed: boo
               <div className="mb-1.5 px-3 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground/70">{group}</div>
             )}
             <div className="space-y-0.5">
-              {NAV_ITEMS.filter((i) => i.group === group).map((item) => (
+              {sidebarItems(group, engineering).map((item) => (
                 <NavRow key={item.path} item={item} collapsed={collapsed} variant={variant} onNavigate={onNavigate} />
               ))}
             </div>
@@ -104,6 +108,17 @@ export function SidebarBody({ collapsed, variant, onNavigate }: { collapsed: boo
 
       <div className="shrink-0 space-y-1 border-t p-2.5">
         <ApiStatus collapsed={collapsed} />
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setSettingsOpen(true)}
+          className={cn("w-full text-muted-foreground", collapsed ? "justify-center px-0" : "justify-start px-3")}
+          aria-label="Settings"
+        >
+          <Settings />
+          {!collapsed && <span>Settings</span>}
+          {!collapsed && engineering && <span className="ml-auto rounded bg-primary/15 px-1.5 py-0.5 text-[10px] font-medium text-primary">Engineering</span>}
+        </Button>
         {variant === "desktop" && (
           <Button
             variant="ghost"

@@ -8,7 +8,7 @@ from sqlmodel import Session
 from texscan.api import storage
 from texscan.api.schemas import InspectionMetrics, InspectionOut, InspectionSummary
 from texscan.models import Inspection
-from texscan.pipeline import PipelineConfig, run_pipeline
+from texscan.pipeline import PipelineConfig, PipelineResult, run_pipeline
 from texscan.pipeline.types import Defect, Image
 
 
@@ -23,6 +23,19 @@ def store_inspection(
 ) -> Inspection:
     """Run the pipeline, write all images to disk, insert the row. Files and row are both rolled back on failure."""
     result = run_pipeline(image, config, reference)
+    return store_result(session, image, filename, config, profile_id, result, batch_id)
+
+
+def store_result(
+    session: Session,
+    image: Image,
+    filename: str,
+    config: PipelineConfig,
+    profile_id: int | None,
+    result: PipelineResult,
+    batch_id: str | None = None,
+) -> Inspection:
+    """Persist an already computed pipeline result (for callers that also need the result itself)."""
     height, width = result.stages["gray"].shape
     row = Inspection(
         filename=filename,

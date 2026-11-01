@@ -5,6 +5,7 @@ import numpy as np
 from skimage.measure import label, regionprops
 from skimage.measure._regionprops import RegionProperties
 
+from texscan.pipeline.measure import min_area_rect_size
 from texscan.pipeline.types import Defect, Image
 
 
@@ -32,6 +33,7 @@ def _contrast(gray: Image, labels: np.ndarray, region: RegionProperties, ring: i
 def _describe(index: int, region: RegionProperties, contrast: float | None) -> Defect:
     y0, x0, y1, x1 = region.bbox
     cy, cx = region.centroid
+    length, width = min_area_rect_size(region.coords[:, ::-1].astype(np.float32))  # (row, col) -> (x, y)
     return Defect(
         id=index,
         bbox=(x0, y0, x1 - x0, y1 - y0),
@@ -42,6 +44,8 @@ def _describe(index: int, region: RegionProperties, contrast: float | None) -> D
         solidity=float(region.solidity),
         orientation_deg=_orientation_deg(region),
         contrast=contrast,
+        length_px=length,
+        width_px=width,
     )
 
 

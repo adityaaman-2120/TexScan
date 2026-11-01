@@ -108,7 +108,7 @@ export interface paths {
         };
         /**
          * Get Bit Planes
-         * @description The eight bit planes of the inspection's grayscale image, most significant first (a syllabus view, not used by detection).
+         * @description The eight bit planes of the inspection's grayscale image, most significant first (a viewer only, not used by detection).
          */
         get: operations["get_bit_planes_inspections__inspection_id__bit_planes_get"];
         put?: never;
@@ -172,6 +172,86 @@ export interface paths {
          * @description Inspections made with the profile are kept; their profile_id becomes null.
          */
         delete: operations["delete_profile_profiles__profile_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/profiles/{profile_id}/calibration/marker": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Calibrate With Marker
+         * @description Find the printed ArUco marker in the photo and store mm per pixel in the profile.
+         */
+        post: operations["calibrate_with_marker_profiles__profile_id__calibration_marker_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/profiles/{profile_id}/calibration/ruler": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Calibrate With Ruler
+         * @description Two points clicked on a ruler (or any known length) in a photo, with the distance between them.
+         */
+        post: operations["calibrate_with_ruler_profiles__profile_id__calibration_ruler_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/profiles/{profile_id}/calibration": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Clear Calibration
+         * @description Back to sizes in pixels only.
+         */
+        delete: operations["clear_calibration_profiles__profile_id__calibration_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/calibration/marker.pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Marker Pdf Download
+         * @description A4 page with the calibration marker at its exact size, a 100 mm check bar and printing instructions.
+         */
+        get: operations["marker_pdf_download_calibration_marker_pdf_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -451,6 +531,132 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/rolls": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Rolls */
+        get: operations["list_rolls_rolls_get"];
+        put?: never;
+        /**
+         * Create Roll
+         * @description Start a roll. Its profile must be size-calibrated, because points depend on real defect lengths.
+         */
+        post: operations["create_roll_rolls_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rolls/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Roll Stats
+         * @description Roll KPIs for the dashboard: rolls inspected, acceptance rate, average points, defect types by supplier.
+         */
+        get: operations["get_roll_stats_rolls_stats_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rolls/{roll_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Roll */
+        get: operations["get_roll_rolls__roll_id__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete Roll
+         * @description Delete the roll with its captures and their inspections.
+         */
+        delete: operations["delete_roll_rolls__roll_id__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Update Roll
+         * @description Edit the details, the limit or the hole rule, or mark the roll complete (or open it again).
+         */
+        patch: operations["update_roll_rolls__roll_id__patch"];
+        trace?: never;
+    };
+    "/rolls/{roll_id}/captures": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add Captures
+         * @description Inspect each picture with the roll's profile and place it on the roll at its metre mark.
+         */
+        post: operations["add_captures_rolls__roll_id__captures_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rolls/{roll_id}/captures/{capture_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Capture
+         * @description Remove one capture (and its inspection) from the roll.
+         */
+        delete: operations["delete_capture_rolls__roll_id__captures__capture_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rolls/{roll_id}/report.pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Roll Pdf
+         * @description The roll's inspection record: details, score and grade, defect map, defect list, signature lines.
+         */
+        get: operations["roll_pdf_rolls__roll_id__report_pdf_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -606,6 +812,24 @@ export interface components {
             /** Planes */
             planes: components["schemas"]["BitPlane"][];
         };
+        /** Body_add_captures_rolls__roll_id__captures_post */
+        Body_add_captures_rolls__roll_id__captures_post: {
+            /**
+             * Images
+             * @description Pictures of the fabric, one per position
+             */
+            images: string[];
+            /**
+             * Positions
+             * @description JSON list of metre marks (the picture's top edge), one per image
+             */
+            positions: string;
+            /**
+             * Config
+             * @description JSON PipelineConfig overrides, e.g. from live capture
+             */
+            config?: string | null;
+        };
         /** Body_arena_arena_post */
         Body_arena_arena_post: {
             /** Image */
@@ -656,6 +880,42 @@ export interface components {
              * @description JSON base-config overrides, e.g. {"max_side": 512}
              */
             config?: string | null;
+        };
+        /** Body_calibrate_with_marker_profiles__profile_id__calibration_marker_post */
+        Body_calibrate_with_marker_profiles__profile_id__calibration_marker_post: {
+            /**
+             * Image
+             * @description A photo with the printed marker in view
+             */
+            image: string;
+            /**
+             * Side Mm
+             * @description Printed side length of the marker's black square, in mm
+             */
+            side_mm: number;
+        };
+        /** Body_calibrate_with_ruler_profiles__profile_id__calibration_ruler_post */
+        Body_calibrate_with_ruler_profiles__profile_id__calibration_ruler_post: {
+            /**
+             * Image Width
+             * @description Width of the photo the points were picked on, in pixels
+             */
+            image_width: number;
+            /** Image Height */
+            image_height: number;
+            /** X1 */
+            x1: number;
+            /** Y1 */
+            y1: number;
+            /** X2 */
+            x2: number;
+            /** Y2 */
+            y2: number;
+            /**
+             * Distance Mm
+             * @description Real distance between the two points, in mm
+             */
+            distance_mm: number;
         };
         /** Body_inspect_batch_inspect_batch_post */
         Body_inspect_batch_inspect_batch_post: {
@@ -784,6 +1044,42 @@ export interface components {
             config?: string | null;
         };
         /**
+         * Calibration
+         * @description Real-world scale of a camera setup, stored in a profile's config.
+         *
+         *     mm_per_pixel was measured on an image whose longest side was image_long_side pixels (see pipeline/measure.py for how
+         *     it carries over to images of other sizes).
+         */
+        Calibration: {
+            /** Mm Per Pixel */
+            mm_per_pixel: number;
+            /** Image Long Side */
+            image_long_side: number;
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "marker" | "ruler";
+            /** Reference Mm */
+            reference_mm: number;
+        };
+        /** CalibrationOut */
+        CalibrationOut: {
+            profile: components["schemas"]["ProfileOut"];
+            /** Mm Per Pixel */
+            mm_per_pixel: number;
+            /** Detail */
+            detail: string;
+        };
+        /** CaptureResult */
+        CaptureResult: {
+            roll: components["schemas"]["RollOut"];
+            /** Added */
+            added: number;
+            /** Rejected */
+            rejected: components["schemas"]["RejectedFile"][];
+        };
+        /**
          * CategoryMetrics
          * @description Metrics of one method on one category, as written by `python -m texscan.eval`.
          */
@@ -869,6 +1165,22 @@ export interface components {
             defect_type?: ("hole" | "tear_line" | "stain" | "thread_fiber" | "unknown") | null;
             /** Type Confidence */
             type_confidence?: number | null;
+            /** Length Px */
+            length_px?: number | null;
+            /** Width Px */
+            width_px?: number | null;
+            /** Length Mm */
+            length_mm?: number | null;
+            /** Width Mm */
+            width_mm?: number | null;
+            /** Area Mm2 */
+            area_mm2?: number | null;
+            /** Length In */
+            length_in?: number | null;
+            /** Width In */
+            width_in?: number | null;
+            /** Area In2 */
+            area_in2?: number | null;
         };
         /** DenoiseConfig */
         DenoiseConfig: {
@@ -1249,6 +1561,7 @@ export interface components {
              * @default 1
              */
             center_fraction: number;
+            calibration?: components["schemas"]["Calibration"] | null;
             /**
              * Max Defects
              * @default 0
@@ -1340,6 +1653,310 @@ export interface components {
             /** Thumbnail */
             thumbnail?: string | null;
         };
+        /** RollCaptureOut */
+        RollCaptureOut: {
+            /** Id */
+            id: number;
+            /** Inspection Id */
+            inspection_id: number;
+            /** Filename */
+            filename: string;
+            /**
+             * Decision
+             * @enum {string}
+             */
+            decision: "PASS" | "FAIL";
+            /** Defect Count */
+            defect_count: number;
+            /** Position M */
+            position_m: number;
+            /** Start M */
+            start_m: number;
+            /** Covered M */
+            covered_m: number;
+            /** Thumbnail Url */
+            thumbnail_url: string | null;
+            /** Overlay Url */
+            overlay_url: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** RollDefectOut */
+        RollDefectOut: {
+            /** Capture Id */
+            capture_id: number;
+            /** Inspection Id */
+            inspection_id: number;
+            /** Defect Id */
+            defect_id: number;
+            /** Defect Type */
+            defect_type: string;
+            /** Position M */
+            position_m: number;
+            /** Position Yd */
+            position_yd: number;
+            /** Start M */
+            start_m: number;
+            /** End M */
+            end_m: number;
+            /** Length Mm */
+            length_mm: number;
+            /** Length In */
+            length_in: number;
+            /** Width Mm */
+            width_mm: number;
+            /** Width In */
+            width_in: number;
+            /** Area Mm2 */
+            area_mm2: number;
+            /** Points */
+            points: number;
+            /** Is Hole */
+            is_hole: boolean;
+            /** Continuous */
+            continuous: boolean;
+        };
+        /** RollIn */
+        RollIn: {
+            /**
+             * Code
+             * @description Roll ID as printed on the roll
+             */
+            code: string;
+            /**
+             * Supplier
+             * @default
+             */
+            supplier: string;
+            /**
+             * Fabric
+             * @description Fabric type
+             * @default
+             */
+            fabric: string;
+            /**
+             * Profile Id
+             * @description A size-calibrated profile for this fabric
+             */
+            profile_id: number;
+            /**
+             * Width Mm
+             * @description Cuttable width between selvages
+             */
+            width_mm: number;
+            /** Length M */
+            length_m: number;
+            /**
+             * Limit
+             * @description Accept when points per 100 sq yd are at or below this
+             * @default 40
+             */
+            limit: number;
+            /**
+             * Hole Rule
+             * @default tiered
+             * @enum {string}
+             */
+            hole_rule: "tiered" | "any_four";
+            /**
+             * Along
+             * @default vertical
+             * @enum {string}
+             */
+            along: "vertical" | "horizontal";
+            /**
+             * Inspector
+             * @default
+             */
+            inspector: string;
+            /**
+             * Notes
+             * @default
+             */
+            notes: string;
+        };
+        /** RollListItem */
+        RollListItem: {
+            /** Id */
+            id: number;
+            /** Code */
+            code: string;
+            /** Supplier */
+            supplier: string;
+            /** Fabric */
+            fabric: string;
+            /** Profile Name */
+            profile_name: string | null;
+            /** Width Mm */
+            width_mm: number;
+            /** Length M */
+            length_m: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "open" | "complete";
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Completed At */
+            completed_at: string | null;
+            /** Capture Count */
+            capture_count: number;
+            /** Defect Count */
+            defect_count: number;
+            /** Total Points */
+            total_points: number;
+            /** Points Per 100 Sq Yd */
+            points_per_100_sq_yd: number;
+            /** Limit */
+            limit: number;
+            /** Accepted */
+            accepted: boolean;
+            /** Grade */
+            grade: string;
+            /** Provisional */
+            provisional: boolean;
+        };
+        /** RollOut */
+        RollOut: {
+            /** Id */
+            id: number;
+            /** Code */
+            code: string;
+            /** Supplier */
+            supplier: string;
+            /** Fabric */
+            fabric: string;
+            /** Profile Id */
+            profile_id: number | null;
+            /** Profile Name */
+            profile_name: string | null;
+            /** Width Mm */
+            width_mm: number;
+            /** Width In */
+            width_in: number;
+            /** Length M */
+            length_m: number;
+            /** Length Yd */
+            length_yd: number;
+            /** Limit */
+            limit: number;
+            /**
+             * Hole Rule
+             * @enum {string}
+             */
+            hole_rule: "tiered" | "any_four";
+            /**
+             * Along
+             * @enum {string}
+             */
+            along: "vertical" | "horizontal";
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "open" | "complete";
+            /** Inspector */
+            inspector: string;
+            /** Notes */
+            notes: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Completed At */
+            completed_at: string | null;
+            summary: components["schemas"]["RollSummary"];
+            /** Captures */
+            captures: components["schemas"]["RollCaptureOut"][];
+            /** Defects */
+            defects: components["schemas"]["RollDefectOut"][];
+        };
+        /** RollPatch */
+        RollPatch: {
+            /** Supplier */
+            supplier?: string | null;
+            /** Fabric */
+            fabric?: string | null;
+            /** Width Mm */
+            width_mm?: number | null;
+            /** Length M */
+            length_m?: number | null;
+            /** Limit */
+            limit?: number | null;
+            /** Hole Rule */
+            hole_rule?: ("tiered" | "any_four") | null;
+            /** Along */
+            along?: ("vertical" | "horizontal") | null;
+            /** Inspector */
+            inspector?: string | null;
+            /** Notes */
+            notes?: string | null;
+            /** Status */
+            status?: ("open" | "complete") | null;
+        };
+        /** RollStats */
+        RollStats: {
+            /** Rolls Inspected */
+            rolls_inspected: number;
+            /** Rolls Open */
+            rolls_open: number;
+            /** Accepted */
+            accepted: number;
+            /** Rejected */
+            rejected: number;
+            /** Acceptance Rate */
+            acceptance_rate: number | null;
+            /** Avg Points Per 100 Sq Yd */
+            avg_points_per_100_sq_yd: number | null;
+            /** Suppliers */
+            suppliers: components["schemas"]["SupplierStat"][];
+        };
+        /** RollSummary */
+        RollSummary: {
+            /** Total Points */
+            total_points: number;
+            /** Raw Points */
+            raw_points: number;
+            /** Points Per 100 Sq Yd */
+            points_per_100_sq_yd: number;
+            /** Limit */
+            limit: number;
+            /** Accepted */
+            accepted: boolean;
+            /** Grade */
+            grade: string;
+            /** Provisional */
+            provisional: boolean;
+            /** Length Inspected M */
+            length_inspected_m: number;
+            /** Length Inspected Yd */
+            length_inspected_yd: number;
+            /** Coverage Percent */
+            coverage_percent: number;
+            /** Defect Count */
+            defect_count: number;
+            /** Capture Count */
+            capture_count: number;
+            /** Ungraded Defects */
+            ungraded_defects: number;
+            /** Yards */
+            yards: components["schemas"]["YardPoints"][];
+            /** Warnings */
+            warnings: string[];
+        };
         /**
          * ScoreHistogram
          * @description Distribution of the good images' scores. Values above the last edge are counted in the last bin.
@@ -1406,6 +2023,21 @@ export interface components {
              * @default []
              */
             by_profile: components["schemas"]["ProfileStat"][];
+        };
+        /** SupplierStat */
+        SupplierStat: {
+            /** Supplier */
+            supplier: string;
+            /** Rolls */
+            rolls: number;
+            /** Accepted */
+            accepted: number;
+            /** Avg Points Per 100 Sq Yd */
+            avg_points_per_100_sq_yd: number;
+            /** Defects */
+            defects: number;
+            /** Top Defect Types */
+            top_defect_types: components["schemas"]["TypeCount"][];
         };
         /** TemplateConfig */
         TemplateConfig: {
@@ -1490,6 +2122,13 @@ export interface components {
             warnings: string[];
             score_histogram?: components["schemas"]["ScoreHistogram"] | null;
         };
+        /** TypeCount */
+        TypeCount: {
+            /** Defect Type */
+            defect_type: string;
+            /** Count */
+            count: number;
+        };
         /** ValidationError */
         ValidationError: {
             /** Location */
@@ -1502,6 +2141,19 @@ export interface components {
             input?: unknown;
             /** Context */
             ctx?: Record<string, never>;
+        };
+        /** YardPoints */
+        YardPoints: {
+            /** Yard */
+            yard: number;
+            /** From M */
+            from_m: number;
+            /** To M */
+            to_m: number;
+            /** Raw */
+            raw: number;
+            /** Points */
+            points: number;
         };
     };
     responses: never;
@@ -1844,6 +2496,139 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    calibrate_with_marker_profiles__profile_id__calibration_marker_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                profile_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_calibrate_with_marker_profiles__profile_id__calibration_marker_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalibrationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    calibrate_with_ruler_profiles__profile_id__calibration_ruler_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                profile_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/x-www-form-urlencoded": components["schemas"]["Body_calibrate_with_ruler_profiles__profile_id__calibration_ruler_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalibrationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    clear_calibration_profiles__profile_id__calibration_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                profile_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProfileOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    marker_pdf_download_calibration_marker_pdf_get: {
+        parameters: {
+            query?: {
+                /** @description Side of the printed black square, in mm */
+                side_mm?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The marker as a PDF file */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": unknown;
+                };
             };
             /** @description Validation Error */
             422: {
@@ -2270,6 +3055,286 @@ export interface operations {
         requestBody?: never;
         responses: {
             /** @description The report as a PDF file */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_rolls_rolls_get: {
+        parameters: {
+            query?: {
+                status?: ("open" | "complete") | null;
+                /** @description matches roll ID, supplier or fabric */
+                q?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RollListItem"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_roll_rolls_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RollIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RollOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_roll_stats_rolls_stats_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RollStats"];
+                };
+            };
+        };
+    };
+    get_roll_rolls__roll_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                roll_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RollOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_roll_rolls__roll_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                roll_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_roll_rolls__roll_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                roll_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RollPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RollOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_captures_rolls__roll_id__captures_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                roll_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_add_captures_rolls__roll_id__captures_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CaptureResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_capture_rolls__roll_id__captures__capture_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                roll_id: number;
+                capture_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RollOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    roll_pdf_rolls__roll_id__report_pdf_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                roll_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The roll report as a PDF file */
             200: {
                 headers: {
                     [name: string]: unknown;

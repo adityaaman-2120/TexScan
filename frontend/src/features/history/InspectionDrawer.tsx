@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { fileUrl } from "@/api/client";
 import { useDeleteInspection, useInspection } from "@/api/hooks";
-import { METHOD_LABELS, type Method } from "@/api/types";
 import { DecisionBadge } from "@/components/DecisionBadge";
 import { ReportButton } from "@/components/ReportButton";
 import { Button } from "@/components/ui/button";
@@ -13,7 +12,10 @@ import { TimingChart } from "@/features/inspect/Charts";
 import { DefectTable } from "@/features/inspect/DefectTable";
 import { stageInfo } from "@/features/inspect/stageInfo";
 import { XRay } from "@/features/inspect/XRay";
+import { ProductDefects } from "@/features/inspect/ProductDefects";
+import { useMethodLabel } from "@/lib/methodLabel";
 import { cn, plural } from "@/lib/utils";
+import { useUi } from "@/store/ui";
 
 function Metric({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -42,6 +44,8 @@ interface InspectionDrawerProps {
 /** Everything about one stored inspection: the stage images, defects, timings and the settings that produced them. */
 export function InspectionDrawer({ id, onClose, profileName }: InspectionDrawerProps) {
   const { data: result, isPending, isError } = useInspection(id);
+  const engineering = useUi((s) => s.engineering);
+  const labelOf = useMethodLabel();
   const remove = useDeleteInspection();
   const [stage, setStage] = useState("overlay");
   const [confirming, setConfirming] = useState(false);
@@ -101,6 +105,7 @@ export function InspectionDrawer({ id, onClose, profileName }: InspectionDrawerP
                   <div className="overflow-hidden rounded-lg border bg-black/40">
                     <img src={fileUrl(result.stage_urls[active]!)} alt={stageInfo(active, result.config).title} className="mx-auto max-h-[52vh] w-auto max-w-full object-contain" />
                   </div>
+                  {engineering && (
                   <ul className="flex gap-2 overflow-x-auto pb-1" aria-label="Pipeline stages">
                     {stages.map((name) => (
                       <li key={name} className="shrink-0">
@@ -119,26 +124,33 @@ export function InspectionDrawer({ id, onClose, profileName }: InspectionDrawerP
                       </li>
                     ))}
                   </ul>
+                  )}
                 </Section>
 
                 <dl className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3">
                   <Metric label="Defects" value={result.metrics.defect_count.toLocaleString()} />
                   <Metric label="Defect area" value={`${result.metrics.defect_area_percent.toFixed(result.metrics.defect_area_percent < 1 ? 3 : 2)}%`} />
-                  <Metric label="Run time" value={`${Math.round(result.metrics.total_ms)} ms`} />
-                  <Metric label="Method" value={METHOD_LABELS[result.method as Method] ?? result.method} />
+                  {engineering && <Metric label="Run time" value={`${Math.round(result.metrics.total_ms)} ms`} />}
+                  <Metric label={engineering ? "Method" : "Scan type"} value={labelOf(result.method)} />
                   <Metric label="Profile" value={profileName(result.profile_id)} />
-                  <Metric label="Working size" value={`${result.metrics.image_width}×${result.metrics.image_height}`} />
+                  {engineering && <Metric label="Working size" value={`${result.metrics.image_width}×${result.metrics.image_height}`} />}
                 </dl>
 
                 <Section title={`Defects (${plural(result.defects.length, "region")})`}>
-                  <DefectTable defects={result.defects} hoveredId={null} selectedId={null} onHover={() => undefined} onSelect={() => undefined} />
+                  {engineering ? (
+                    <DefectTable defects={result.defects} hoveredId={null} selectedId={null} onHover={() => undefined} onSelect={() => undefined} calibrated={result.config.calibration != null} profileId={result.profile_id} />
+                  ) : (
+                    <ProductDefects defects={result.defects} width={result.metrics.image_width} height={result.metrics.image_height} hoveredId={null} selectedId={null} onHover={() => undefined} onSelect={() => undefined} calibrated={result.config.calibration != null} profileId={result.profile_id} />
+                  )}
                 </Section>
 
-                <Section title="Stage timings">
-                  <TimingChart timings={result.timings_ms} />
-                </Section>
+                {engineering && (
+                  <Section title="Stage timings">
+                    <TimingChart timings={result.timings_ms} />
+                  </Section>
+                )}
 
-                {cfg && (
+                {engineering && cfg && (
                   <Section title="Settings used">
                     <dl className="num grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
                       {[
@@ -165,10 +177,12 @@ export function InspectionDrawer({ id, onClose, profileName }: InspectionDrawerP
 
           {result && (
             <div className="flex shrink-0 flex-wrap items-center gap-2 border-t px-5 py-3">
-              <Button variant="outline" onClick={() => setXray(true)} className="border-primary/40 text-primary hover:bg-primary/10 hover:text-primary">
-                <ScanSearch />
-                Pipeline X-Ray
-              </Button>
+              {engineering && (
+                <Button variant="outline" onClick={() => setXray(true)} className="border-primary/40 text-primary hover:bg-primary/10 hover:text-primary">
+                  <ScanSearch />
+                  Pipeline X-Ray
+                </Button>
+              )}
               <ReportButton targets={[{ kind: "inspection", id: result.id }]} />
               <Button variant="ghost" asChild>
                 <a href={fileUrl(result.stage_urls.upload!)} target="_blank" rel="noreferrer">
@@ -199,7 +213,7 @@ export function InspectionDrawer({ id, onClose, profileName }: InspectionDrawerP
           )}
         </SheetContent>
       </Sheet>
-      {result && <XRay result={result} open={xray} onOpenChange={setXray} />}
+      {result && engineering && <XRay result={result} open={xray} onOpenChange={setXray} />}
     </>
   );
 }

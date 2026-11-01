@@ -1,4 +1,4 @@
-import { Eye, Frame, Layers, Layout, Thermometer, TriangleAlert } from "lucide-react";
+import { Eye, Frame, Layers, Layout, Layers2, Thermometer, TriangleAlert } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { requireNav } from "@/app/nav";
@@ -6,6 +6,7 @@ import { useUi } from "@/store/ui";
 import { hotkeyFor } from "@/lib/hotkeys";
 import { Stagger, StaggerItem } from "@/components/motion";
 import { PageHeader } from "@/components/PageHeader";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Segmented, type SegmentOption } from "@/components/ui/segmented";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -13,6 +14,7 @@ import { Slider } from "@/components/ui/slider";
 import { CompareSlider } from "./CompareSlider";
 import { ControlPanel } from "./ControlPanel";
 import { DefectTable } from "./DefectTable";
+import { ProductDefects } from "./ProductDefects";
 import { Dropzone } from "./Dropzone";
 import { HistogramChart, TimingChart } from "./Charts";
 import { heatKey, residualKey } from "./stageInfo";
@@ -35,6 +37,7 @@ export function InspectPage() {
   const session = useInspectSession();
   const { result, running } = session;
   const profileId = useUi((s) => s.profileId);
+  const engineering = useUi((s) => s.engineering);
 
   const [mode, setMode] = useState<OverlayMode>("boxes");
   const [opacity, setOpacity] = useState(0.85);
@@ -59,7 +62,7 @@ export function InspectPage() {
 
   // U opens the file picker, X opens the pipeline X-Ray (never while typing or with a menu / dialog open)
   const picker = useRef<HTMLInputElement>(null);
-  const canXray = Boolean(result);
+  const canXray = Boolean(result) && engineering;
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const hotkey = hotkeyFor(e);
@@ -85,13 +88,24 @@ export function InspectPage() {
   const urls = result?.stage_urls ?? {};
   const resKey = residualKey(urls);
   const hasHeat = Boolean(heatKey(urls));
-  const overlayOptions: SegmentOption<OverlayMode>[] = [
-    { value: "none", label: "Off", icon: Eye },
-    { value: "boxes", label: "Boxes", icon: Frame },
-    { value: "mask", label: "Mask", icon: Layers },
-    { value: "edges", label: "Edges", icon: Layout },
-    { value: "heatmap", label: "Heatmap", icon: Thermometer, disabled: !hasHeat },
-  ];
+  const overlayOptions: SegmentOption<OverlayMode>[] = engineering
+    ? [
+        { value: "none", label: "Off", icon: Eye },
+        { value: "boxes", label: "Boxes", icon: Frame },
+        { value: "mask", label: "Mask", icon: Layers },
+        { value: "edges", label: "Edges", icon: Layout },
+        { value: "heatmap", label: "Heatmap", icon: Thermometer, disabled: !hasHeat },
+      ]
+    : [
+        { value: "none", label: "Off", icon: Eye },
+        { value: "boxes", label: "Boxes", icon: Frame },
+        { value: "mask", label: "Highlight", icon: Layers2 },
+      ];
+
+  // the operator view has no edges / heatmap layers
+  useEffect(() => {
+    if (!engineering && (mode === "edges" || mode === "heatmap")) setMode("boxes");
+  }, [engineering, mode]);
 
   const selectDefect = (id: number) => {
     setSelected(id);
@@ -106,7 +120,19 @@ export function InspectPage() {
         session.acceptFile(e.dataTransfer.files[0]);
       }}
     >
-      <PageHeader icon={item.icon} title={item.label} description={item.description} />
+      <PageHeader
+        icon={item.icon}
+        title={item.label}
+        description={item.description}
+        actions={
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/batch">
+              <Layers />
+              Check many photos
+            </Link>
+          </Button>
+        }
+      />
       <input
         ref={picker}
         type="file"
@@ -133,12 +159,12 @@ export function InspectPage() {
               <StaggerItem>
                 <Card className="py-5">
                   <CardContent>
-                    <VerdictHeader result={result} running={running} onXRay={() => setXray(true)} />
+                    <VerdictHeader result={result} running={running} onXRay={() => setXray(true)} engineering={engineering} />
                     {result?.decision === "FAIL" && profileId === null && (
                       <p role="note" className="mt-4 flex items-start gap-2 rounded-lg border border-warning/30 bg-warning/5 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
                         <TriangleAlert className="mt-0.5 size-3.5 shrink-0 text-warning" />
                         <span>
-                          These are untuned settings. On a real photo (uneven light, folds, the edge of the cloth) they can call good cloth defective. For a trustworthy verdict make a <Link to="/profiles" className="text-primary underline-offset-4 hover:underline">profile</Link> from 5 to 20 good images of the same material and select it.
+                          {engineering ? "These are untuned settings. On a real photo (uneven light, folds, the edge of the cloth) they can call good cloth defective." : "No fabric profile is selected. Uneven light, folds or the edge of the cloth can make good fabric look defective."} For a trustworthy verdict make a <Link to="/profiles" className="text-primary underline-offset-4 hover:underline">profile</Link> from 5 to 20 good images of the same fabric and select it.
                         </span>
                       </p>
                     )}
@@ -152,11 +178,13 @@ export function InspectPage() {
                     <CardTitle>Defect overlay</CardTitle>
                     <div className="flex flex-wrap items-center gap-3">
                       <Segmented value={mode} onChange={setMode} options={overlayOptions} label="Overlay type" />
-                      <label className="flex items-center gap-2 text-xs text-muted-foreground">
-                        Opacity
-                        <Slider value={[opacity * 100]} min={10} max={100} step={5} onValueChange={([v]) => setOpacity(v! / 100)} className="w-24" aria-label="Overlay opacity" />
-                        <span className="num w-8 text-foreground">{Math.round(opacity * 100)}%</span>
-                      </label>
+                      {engineering && (
+                        <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                          Opacity
+                          <Slider value={[opacity * 100]} min={10} max={100} step={5} onValueChange={([v]) => setOpacity(v! / 100)} className="w-24" aria-label="Overlay opacity" />
+                          <span className="num w-8 text-foreground">{Math.round(opacity * 100)}%</span>
+                        </label>
+                      )}
                     </div>
                   </CardHeader>
                   <CardContent>
@@ -179,7 +207,8 @@ export function InspectPage() {
                 </Card>
               </StaggerItem>
 
-              <StaggerItem className="grid items-start gap-5 xl:grid-cols-2">
+              <StaggerItem className={engineering ? "grid items-start gap-5 xl:grid-cols-2" : "grid items-start gap-5"}>
+                {engineering && (
                 <Card className="gap-4">
                   <CardHeader>
                     <CardTitle>Before / after</CardTitle>
@@ -200,15 +229,28 @@ export function InspectPage() {
                     )}
                   </CardContent>
                 </Card>
+                )}
 
                 <Card className="gap-4">
                   <CardHeader>
-                    <CardTitle>Defects</CardTitle>
+                    <CardTitle>{engineering ? "Defects" : "What was found"}</CardTitle>
                     <CardDescription>Click a row to zoom to it. Hover to highlight it on the image.</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    {result ? (
-                      <DefectTable defects={result.defects} hoveredId={hovered} selectedId={selected} onHover={setHovered} onSelect={selectDefect} />
+                    {result && engineering ? (
+                      <DefectTable defects={result.defects} hoveredId={hovered} selectedId={selected} onHover={setHovered} onSelect={selectDefect} calibrated={result.config.calibration != null} profileId={result.profile_id} />
+                    ) : result ? (
+                      <ProductDefects
+                        defects={result.defects}
+                        width={result.metrics.image_width}
+                        height={result.metrics.image_height}
+                        hoveredId={hovered}
+                        selectedId={selected}
+                        onHover={setHovered}
+                        onSelect={selectDefect}
+                        calibrated={result.config.calibration != null}
+                        profileId={result.profile_id}
+                      />
                     ) : (
                       <div className="space-y-2">
                         {Array.from({ length: 4 }, (_, i) => (
@@ -220,6 +262,7 @@ export function InspectPage() {
                 </Card>
               </StaggerItem>
 
+              {engineering && (
               <StaggerItem className="grid items-start gap-5 xl:grid-cols-2">
                 <Card className="gap-4">
                   <CardHeader>
@@ -242,12 +285,13 @@ export function InspectPage() {
                   <CardContent>{result ? <TimingChart timings={result.timings_ms} /> : <Skeleton className="h-52 w-full" />}</CardContent>
                 </Card>
               </StaggerItem>
+              )}
             </Stagger>
           )}
         </div>
       </div>
 
-      {result && <XRay result={result} open={xray} onOpenChange={setXray} />}
+      {result && engineering && <XRay result={result} open={xray} onOpenChange={setXray} />}
     </div>
   );
 }

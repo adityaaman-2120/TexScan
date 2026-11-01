@@ -2,5 +2,6 @@
 
 from texscan.report.batch import BatchItem, BatchReportData, batch_report
 from texscan.report.inspection import InspectionReportData, inspection_report
+from texscan.report.roll import RollReportData, roll_report
 
-__all__ = ["BatchItem", "BatchReportData", "InspectionReportData", "batch_report", "inspection_report"]
+__all__ = ["BatchItem", "BatchReportData", "InspectionReportData", "batch_report", "RollReportData", "inspection_report", "roll_report"]

@@ -16,6 +16,11 @@ interface UiState {
   /** Profile used by inspections; null = pipeline defaults. */
   profileId: number | null;
   setProfileId: (id: number | null) => void;
+  /** Engineering mode: shows the Engineering sidebar section and every technical control. Off = product mode. */
+  engineering: boolean;
+  setEngineering: (on: boolean) => void;
+  settingsOpen: boolean;
+  setSettingsOpen: (open: boolean) => void;
 }
 
 export const useUi = create<UiState>()(
@@ -32,10 +37,14 @@ export const useUi = create<UiState>()(
       setPaletteOpen: (paletteOpen) => set({ paletteOpen }),
       profileId: null,
       setProfileId: (profileId) => set({ profileId }),
+      engineering: false,
+      setEngineering: (engineering) => set({ engineering }),
+      settingsOpen: false,
+      setSettingsOpen: (settingsOpen) => set({ settingsOpen }),
     }),
     {
       name: "texscan-ui",
-      partialize: (s) => ({ theme: s.theme, sidebarCollapsed: s.sidebarCollapsed, profileId: s.profileId }),
+      partialize: (s) => ({ theme: s.theme, sidebarCollapsed: s.sidebarCollapsed, profileId: s.profileId, engineering: s.engineering }),
     },
   ),
 );

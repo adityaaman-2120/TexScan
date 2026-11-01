@@ -15,6 +15,9 @@ import { Input } from "@/components/ui/input";
 import { Segmented } from "@/components/ui/segmented";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { RollsList } from "@/features/rolls/RollsList";
+import { useMethodLabel } from "@/lib/methodLabel";
 import { cn, plural } from "@/lib/utils";
 import { InspectionDrawer } from "./InspectionDrawer";
 
@@ -38,13 +41,14 @@ const COLUMNS = (
     <th scope="col" className="px-3 py-2.5 font-medium">File</th>
     <th scope="col" className="px-3 py-2.5 font-medium">Decision</th>
     <th scope="col" className="hidden px-3 py-2.5 text-right font-medium sm:table-cell">Defects</th>
-    <th scope="col" className="hidden px-3 py-2.5 font-medium md:table-cell">Method</th>
+    <th scope="col" className="hidden px-3 py-2.5 font-medium md:table-cell">Scan type</th>
     <th scope="col" className="hidden px-3 py-2.5 font-medium lg:table-cell">Profile</th>
     <th scope="col" className="hidden px-3 py-2.5 font-medium sm:table-cell">Date</th>
   </tr>
 );
 
-export function HistoryPage() {
+function InspectionsHistory() {
+  const labelOf = useMethodLabel();
   const [search, setSearch] = useSearchParams();
   const openId = Number(search.get("id")) || undefined;
   const batchId = search.get("batch") ?? undefined;
@@ -110,8 +114,6 @@ export function HistoryPage() {
 
   return (
     <>
-      <PageHeader icon={item.icon} title={item.label} description={item.description} />
-
       <Card className="mb-4 gap-3 p-3 py-3">
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative min-w-52 flex-1">
@@ -132,10 +134,10 @@ export function HistoryPage() {
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <Select value={method} onValueChange={setMethod}>
-            <SelectTrigger className="w-44" aria-label="Filter by method"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-44" aria-label="Filter by scan type"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value={ALL}>All methods</SelectItem>
-              {METHODS.map((m) => <SelectItem key={m} value={m}>{METHOD_LABELS[m]}</SelectItem>)}
+              <SelectItem value={ALL}>All scan types</SelectItem>
+              {METHODS.map((m) => <SelectItem key={m} value={m}>{labelOf(m)}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={profile} onValueChange={setProfile}>
@@ -225,7 +227,7 @@ export function HistoryPage() {
                   </td>
                   <td className="px-3 py-2"><DecisionBadge decision={row.decision} /></td>
                   <td className="num hidden px-3 py-2 text-right sm:table-cell">{row.defect_count.toLocaleString()}</td>
-                  <td className="hidden px-3 py-2 text-muted-foreground md:table-cell">{METHOD_LABELS[row.method as Method] ?? row.method}</td>
+                  <td className="hidden px-3 py-2 text-muted-foreground md:table-cell">{labelOf(row.method)}</td>
                   <td className="hidden px-3 py-2 text-muted-foreground lg:table-cell">{profileName(row.profile_id)}</td>
                   <td className="num hidden whitespace-nowrap px-3 py-2 text-xs text-muted-foreground sm:table-cell">{new Date(row.created_at).toLocaleString()}</td>
                 </tr>
@@ -249,6 +251,29 @@ export function HistoryPage() {
       </Card>
 
       <InspectionDrawer id={openId} onClose={closeDrawer} profileName={profileName} />
+    </>
+  );
+}
+
+/** History: past inspections and graded rolls. */
+export function HistoryPage() {
+  const [search, setSearch] = useSearchParams();
+  const tab = search.get("tab") === "rolls" ? "rolls" : "inspections";
+  return (
+    <>
+      <PageHeader icon={item.icon} title={item.label} description={item.description} />
+      <Tabs value={tab} onValueChange={(v) => setSearch(v === "rolls" ? { tab: "rolls" } : {})}>
+        <TabsList aria-label="History">
+          <TabsTrigger value="inspections">Inspections</TabsTrigger>
+          <TabsTrigger value="rolls">Rolls</TabsTrigger>
+        </TabsList>
+        <TabsContent value="inspections">
+          <InspectionsHistory />
+        </TabsContent>
+        <TabsContent value="rolls">
+          <RollsList />
+        </TabsContent>
+      </Tabs>
     </>
   );
 }

@@ -6,10 +6,12 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Segmented } from "@/components/ui/segmented";
 import { Slider } from "@/components/ui/slider";
-import { BitPlanes } from "./BitPlanes";
+import { useUi } from "@/store/ui";
 import { Dropzone } from "./Dropzone";
 import { effectiveValue, sliderDefs, toOdd } from "./config";
+import { SENSITIVITIES } from "./sensitivity";
 import type { InspectSession } from "./useInspectSession";
 
 const METHOD_HELP: Record<Method, string> = {
@@ -62,7 +64,32 @@ function ReferencePicker({ session }: { session: InspectSession }) {
   );
 }
 
+/** Everyday control: one Sensitivity choice and the fabric profile. */
+function ProductControls({ session }: { session: InspectSession }) {
+  const hint = SENSITIVITIES.find((s) => s.value === session.sensitivity)?.hint;
+  return (
+    <Card className="gap-4 py-4">
+      <div className="space-y-4 px-4">
+        <div className="space-y-1.5">
+          <Label hint={hint}>Sensitivity</Label>
+          <Segmented
+            label="Sensitivity"
+            value={session.sensitivity}
+            onChange={session.setSensitivity}
+            options={SENSITIVITIES.map((s) => ({ value: s.value, label: s.label }))}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label hint="Settings learned from good samples of this fabric.">Fabric profile</Label>
+          <ProfileSelector className="w-full sm:w-full" />
+        </div>
+      </div>
+    </Card>
+  );
+}
+
 export function ControlPanel({ session }: { session: InspectSession }) {
+  const engineering = useUi((s) => s.engineering);
   const { method, overrides, result } = session;
   const defs = sliderDefs(method);
   const edited = Object.keys(overrides).length > 0;
@@ -75,6 +102,9 @@ export function ControlPanel({ session }: { session: InspectSession }) {
         </Card>
       )}
 
+      {!engineering && <ProductControls session={session} />}
+
+      {engineering && (
       <Card className="gap-4 py-4">
         <div className="space-y-4 px-4">
           <div className="space-y-1.5">
@@ -141,19 +171,11 @@ export function ControlPanel({ session }: { session: InspectSession }) {
                 Changes re-run the inspection after a short pause. Re-runs of the same image replace each other in History.
               </p>
 
-              <section className="space-y-2 border-t pt-4" aria-labelledby="bitplanes-heading">
-                <div>
-                  <h3 id="bitplanes-heading" className="text-xs font-medium">
-                    Bit planes
-                  </h3>
-                  <div className="text-[11px] leading-snug text-muted-foreground">The 8 binary layers of the grayscale image.</div>
-                </div>
-                <BitPlanes inspectionId={result?.id} />
-              </section>
             </AccordionContent>
           </AccordionItem>
         </Accordion>
       </Card>
+      )}
     </div>
   );
 }

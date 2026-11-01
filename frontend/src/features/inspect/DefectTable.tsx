@@ -2,6 +2,8 @@ import { CircleCheck } from "lucide-react";
 import type { Defect } from "@/api/types";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { sizeCells, type SizeCell } from "@/features/calibration/defectSize";
+import { SizeNote } from "@/features/calibration/SizeNote";
 import { DEFECT_LABELS } from "./defectLabels";
 
 const MAX_ROWS = 200;
@@ -12,9 +14,21 @@ interface DefectTableProps {
   selectedId: number | null;
   onHover: (id: number | null) => void;
   onSelect: (id: number) => void;
+  /** Whether the profile used has a size calibration (sizes in mm and inches) or not (pixels). */
+  calibrated: boolean;
+  profileId: number | null;
 }
 
-export function DefectTable({ defects, hoveredId, selectedId, onHover, onSelect }: DefectTableProps) {
+function Size({ cell }: { cell: SizeCell }) {
+  return (
+    <td className="num px-3 py-2 text-right">
+      {cell.main}
+      {cell.alt && <div className="text-[11px] text-muted-foreground">{cell.alt}</div>}
+    </td>
+  );
+}
+
+export function DefectTable({ defects, hoveredId, selectedId, onHover, onSelect, calibrated, profileId }: DefectTableProps) {
   if (defects.length === 0) {
     return (
       <div className="flex flex-col items-center gap-2 py-10 text-center">
@@ -26,12 +40,16 @@ export function DefectTable({ defects, hoveredId, selectedId, onHover, onSelect 
   }
   const rows = defects.slice(0, MAX_ROWS);
   return (
+    <>
+    <SizeNote calibrated={calibrated} profileId={profileId} />
     <div className="max-h-[340px] overflow-auto rounded-lg border">
       <table className="w-full text-[13px]">
         <thead className="sticky top-0 bg-card text-left text-[11px] uppercase tracking-wider text-muted-foreground">
           <tr className="border-b">
             <th scope="col" className="px-3 py-2 font-medium">#</th>
             <th scope="col" className="px-3 py-2 font-medium">Type</th>
+            <th scope="col" className="px-3 py-2 text-right font-medium">Length</th>
+            <th scope="col" className="px-3 py-2 text-right font-medium">Width</th>
             <th scope="col" className="px-3 py-2 text-right font-medium">Area</th>
             <th scope="col" className="px-3 py-2 text-right font-medium">Aspect</th>
             <th scope="col" className="px-3 py-2 text-right font-medium">Confidence</th>
@@ -61,7 +79,9 @@ export function DefectTable({ defects, hoveredId, selectedId, onHover, onSelect 
               <td className="px-3 py-2">
                 <Badge variant="outline">{DEFECT_LABELS[d.defect_type ?? "unknown"]}</Badge>
               </td>
-              <td className="num px-3 py-2 text-right">{d.area.toLocaleString()} px</td>
+              <Size cell={sizeCells(d).length} />
+              <Size cell={sizeCells(d).width} />
+              <Size cell={sizeCells(d).area} />
               <td className="num px-3 py-2 text-right">{d.aspect_ratio.toFixed(1)}</td>
               <td className="px-3 py-2">
                 <div className="ml-auto flex w-24 items-center justify-end gap-2">
@@ -81,5 +101,6 @@ export function DefectTable({ defects, hoveredId, selectedId, onHover, onSelect 
         </p>
       )}
     </div>
+    </>
   );
 }

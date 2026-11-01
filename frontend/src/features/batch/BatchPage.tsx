@@ -5,7 +5,8 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { ProfileSelector } from "@/app/ProfileSelector";
 import { requireNav } from "@/app/nav";
-import { METHOD_LABELS, type Method } from "@/api/types";
+import type { Method } from "@/api/types";
+import { useMethodLabel } from "@/lib/methodLabel";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -80,11 +81,12 @@ function Picker({ onPick }: { onPick: (result: PickResult) => void }) {
 }
 
 export function BatchPage() {
+  const labelOf = useMethodLabel();
   const navigate = useNavigate();
   const profileId = useUi((s) => s.profileId);
   const batch = useBatchRun();
   const [staged, setStaged] = useState<PickResult | null>(null);
-  const [method, setMethod] = useState<Method>("fft");
+  const [method, setMethod] = useState<Method>("gabor");
   const [exporting, setExporting] = useState(false);
 
   const { items, phase, summary } = batch;
@@ -135,7 +137,7 @@ export function BatchPage() {
           <CardContent className="space-y-5">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <div className="text-xs font-medium">Method</div>
+                <div className="text-xs font-medium">Scan type</div>
                 <Select value={method} onValueChange={(v) => setMethod(v as Method)}>
                   <SelectTrigger aria-label="Detection method">
                     <SelectValue />
@@ -143,7 +145,7 @@ export function BatchPage() {
                   <SelectContent>
                     {METHODS.map((m) => (
                       <SelectItem key={m} value={m}>
-                        {METHOD_LABELS[m]}
+                        {labelOf(m)}
                       </SelectItem>
                     ))}
                   </SelectContent>

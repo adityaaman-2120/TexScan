@@ -1,11 +1,13 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { client, postForm } from "@/api/client";
+import { useProfiles } from "@/api/hooks";
 import { errorMessage } from "@/api/errors";
 import type { InspectionOut, Method } from "@/api/types";
 import { useUi } from "@/store/ui";
 import { toConfig, type Overrides } from "./config";
+import { DEFAULT_SENSITIVITY, sensitivityOverrides, type Sensitivity } from "./sensitivity";
 
 const DEBOUNCE_MS = 350;
 
@@ -18,10 +20,14 @@ const DEBOUNCE_MS = 350;
 export function useInspectSession() {
   const queryClient = useQueryClient();
   const profileId = useUi((s) => s.profileId);
+  const engineering = useUi((s) => s.engineering);
+  const { data: profiles } = useProfiles();
+  const profile = profiles?.find((p) => p.id === profileId);
 
   const [file, setFile] = useState<File | null>(null);
   const [method, setMethodState] = useState<Method>("gabor"); // measured on 64 clean + 64 defective synthetic images of four textures: no false alarms, every defect found. FFT only suits periodic weaves.
   const [overrides, setOverrides] = useState<Overrides>({});
+  const [sensitivity, setSensitivity] = useState<Sensitivity>(DEFAULT_SENSITIVITY);
   const [reference, setReference] = useState<File | null>(null);
   const [result, setResult] = useState<InspectionOut | null>(null);
   const [running, setRunning] = useState(false);
@@ -31,6 +37,13 @@ export function useInspectSession() {
   const immediate = useRef(true);
 
   const needsReference = method === "golden_template" && !reference;
+
+  // Engineering mode sends the sliders; product mode sends the Sensitivity preset (relative to the profile, if one is active)
+  const effectiveMethod = (profile?.method ?? method) as Method;
+  const sent = useMemo(
+    () => (engineering ? overrides : sensitivityOverrides(sensitivity, effectiveMethod, profile?.config)),
+    [engineering, overrides, sensitivity, effectiveMethod, profile?.config],
+  );
 
   const loadFile = useCallback((next: File) => {
     immediate.current = true;
@@ -64,8 +77,8 @@ export function useInspectSession() {
     form.append("image", file);
     if (reference) form.append("reference", reference);
     if (profileId !== null) form.append("profile_id", String(profileId));
-    form.append("method", method);
-    if (Object.keys(overrides).length > 0) form.append("config", JSON.stringify(toConfig(overrides)));
+    form.append("method", engineering ? method : effectiveMethod); // the operator view always runs the method its profile was tuned for
+    if (Object.keys(sent).length > 0) form.append("config", JSON.stringify(toConfig(sent)));
     try {
       const out = await postForm<InspectionOut>("/inspect", form);
       if (id !== seq.current) {
@@ -83,7 +96,7 @@ export function useInspectSession() {
     } finally {
       if (id === seq.current) setRunning(false);
     }
-  }, [file, reference, profileId, method, overrides, queryClient]);
+  }, [file, reference, profileId, method, effectiveMethod, engineering, sent, queryClient]);
 
   useEffect(() => {
     if (!file || needsReference) return;
@@ -105,7 +118,7 @@ export function useInspectSession() {
   );
 
   return {
-    file, method, setMethod, overrides, setOverride, resetOverrides, reference, setReference, needsReference,
+    file, method, setMethod, sensitivity, setSensitivity, overrides, setOverride, resetOverrides, reference, setReference, needsReference,
     result, running, acceptFile,
   }; // fmt: skip
 }

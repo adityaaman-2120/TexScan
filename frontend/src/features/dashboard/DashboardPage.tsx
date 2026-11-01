@@ -12,6 +12,7 @@ import { Segmented } from "@/components/ui/segmented";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChartTooltip, GRID, Legend, TICK } from "@/features/inspect/Charts";
 import { DEFECT_LABELS } from "@/features/inspect/defectLabels";
+import { RollKpis } from "@/features/rolls/RollKpis";
 import { plural } from "@/lib/utils";
 import { DEFECT_COLORS, defectSlices, formatMs, formatPercent, mostCommon } from "./defectColors";
 
@@ -182,6 +183,7 @@ export function DashboardPage() {
           </ChartCard>
         </StaggerItem>
       </Stagger>
+      <RollKpis />
     </>
   );
 }

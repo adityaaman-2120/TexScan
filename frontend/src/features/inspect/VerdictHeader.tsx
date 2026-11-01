@@ -20,9 +20,11 @@ interface VerdictHeaderProps {
   result: InspectionOut | null;
   running: boolean;
   onXRay: () => void;
+  /** Engineering mode: also show run time, method and the X-Ray button. */
+  engineering?: boolean;
 }
 
-export function VerdictHeader({ result, running, onXRay }: VerdictHeaderProps) {
+export function VerdictHeader({ result, running, onXRay, engineering = false }: VerdictHeaderProps) {
   if (!result) {
     return (
       <div className="flex items-center gap-5">
@@ -62,19 +64,21 @@ export function VerdictHeader({ result, running, onXRay }: VerdictHeaderProps) {
         </motion.div>
       </AnimatePresence>
 
-      <div className="grid min-w-0 flex-1 grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-[repeat(3,minmax(0,1fr))_minmax(0,1.8fr)]">
+      <div className="grid min-w-0 flex-1 grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-[repeat(var(--verdict-cols),minmax(0,1fr))]" style={{ "--verdict-cols": engineering ? 4 : 2 } as React.CSSProperties}>
         <Metric label="Defects" value={m.defect_count.toLocaleString()} />
-        <Metric label="Defect area" value={`${m.defect_area_percent.toFixed(m.defect_area_percent < 1 ? 3 : 2)}%`} />
-        <Metric label="Run time" value={`${Math.round(m.total_ms)} ms`} />
-        <Metric label="Method" value={METHOD_LABELS[result.method as Method] ?? result.method} />
+        <Metric label={engineering ? "Defect area" : "Affected area"} value={`${m.defect_area_percent.toFixed(m.defect_area_percent < 1 ? 3 : 2)}%`} />
+        {engineering && <Metric label="Run time" value={`${Math.round(m.total_ms)} ms`} />}
+        {engineering && <Metric label="Method" value={METHOD_LABELS[result.method as Method] ?? result.method} />}
       </div>
 
       <div className="flex shrink-0 flex-wrap gap-2 sm:flex-col">
-        <Button variant="outline" onClick={onXRay} className="border-primary/40 text-primary hover:bg-primary/10 hover:text-primary">
-          <ScanSearch />
-          Pipeline X-Ray
-          <Kbd className="hidden md:inline-flex">X</Kbd>
-        </Button>
+        {engineering && (
+          <Button variant="outline" onClick={onXRay} className="border-primary/40 text-primary hover:bg-primary/10 hover:text-primary">
+            <ScanSearch />
+            Pipeline X-Ray
+            <Kbd className="hidden md:inline-flex">X</Kbd>
+          </Button>
+        )}
         <ReportButton targets={[{ kind: "inspection", id: result.id }]} disabled={running} />
       </div>
     </div>

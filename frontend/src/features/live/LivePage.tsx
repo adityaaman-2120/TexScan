@@ -2,20 +2,22 @@ import { useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import { Camera, CameraOff, CircleCheck, CircleX, Crosshair, FlipHorizontal2, Loader2, Pause, Play, RefreshCw, Smartphone, SwitchCamera, TriangleAlert, Video, WifiOff } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { ProfileSelector } from "@/app/ProfileSelector";
 import { fileUrl, postForm } from "@/api/client";
 import { errorMessage } from "@/api/errors";
-import { keys, useProfiles } from "@/api/hooks";
+import { keys, useAddCaptures, useProfiles, useRoll } from "@/api/hooks";
 import { METHOD_LABELS, type InspectionOut, type Method } from "@/api/types";
 import { requireNav } from "@/app/nav";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Segmented } from "@/components/ui/segmented";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DEFECT_LABELS, type DefectKind } from "@/features/inspect/defectLabels";
+import { formatMetres, nextPosition } from "@/features/rolls/rollMath";
 import { cn } from "@/lib/utils";
 import { useUi } from "@/store/ui";
 import { captureFullFrame } from "./frames";
@@ -66,6 +68,7 @@ export function LivePage() {
 
   const camera = useCamera(videoRef);
   const profileId = useUi((s) => s.profileId);
+  const engineering = useUi((s) => s.engineering);
   const setProfileId = useUi((s) => s.setProfileId);
   const { data: profiles } = useProfiles();
   const profile = profiles?.find((p) => p.id === profileId);
@@ -78,6 +81,12 @@ export function LivePage() {
   const [mirrorPref, setMirrorPref] = useState<"auto" | "on" | "off">("auto");
   const [capturing, setCapturing] = useState(false);
   const [lastCapture, setLastCapture] = useState<InspectionOut | null>(null);
+  // roll mode (/live?roll=ID&at=M): a capture becomes a picture of that roll at the metre mark typed here
+  const [params] = useSearchParams();
+  const rollId = Number(params.get("roll")) || undefined;
+  const { data: roll } = useRoll(rollId);
+  const addToRoll = useAddCaptures(rollId ?? 0);
+  const [mark, setMark] = useState(params.get("at") ?? "0");
   const [now, setNow] = useState(() => performance.now());
 
   const cam = camera.state.status === "ready" ? camera.state : null;
@@ -197,6 +206,17 @@ export function LivePage() {
     setCapturing(true);
     try {
       const file = await captureFullFrame(video);
+      if (rollId !== undefined) {
+        const position = Number(mark.replace(",", "."));
+        if (!Number.isFinite(position) || position < 0) throw new Error("Enter the metre mark of the picture's top edge first.");
+        const res = await addToRoll.mutateAsync({ files: [file], positions: [position], config: { trim_borders: true, center_fraction: center } }); // same view as live
+        setMark(String(nextPosition(res.roll.captures, res.roll.length_m)));
+        toast.success(`Added to roll ${res.roll.code} at ${formatMetres(position)}`, {
+          description: `${res.roll.summary.total_points} points so far, ${res.roll.summary.points_per_100_sq_yd.toFixed(1)} per 100 sq yd.`,
+          action: { label: "Open roll", onClick: () => navigate(`/roll/${res.roll.id}`) },
+        });
+        return;
+      }
       const form = new FormData();
       form.append("image", file);
       form.append("method", method);
@@ -247,6 +267,25 @@ export function LivePage() {
 
       <div className="grid grid-cols-[minmax(0,1fr)] gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
         <div className="min-w-0 space-y-4">
+          {rollId !== undefined && (
+            <Card className="py-3">
+              <CardContent className="flex flex-wrap items-center gap-3 text-sm">
+                <span>
+                  Capturing for roll <strong className="num">{roll?.code ?? `#${rollId}`}</strong>
+                </span>
+                <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                  Metre mark of the top edge
+                  <Input inputMode="decimal" value={mark} onChange={(e) => setMark(e.target.value)} aria-label="Metre mark of the picture's top edge" className="num h-8 w-24" />
+                  m
+                </label>
+                <span className="text-xs text-muted-foreground">Uses the roll&apos;s profile{roll?.profile_name ? ` (${roll.profile_name})` : ""}.</span>
+                <Button variant="outline" size="sm" className="ml-auto" asChild>
+                  <Link to={`/roll/${rollId}`}>Back to the roll</Link>
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
           {/* verdict + readouts */}
           <Card className="py-4">
             <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
@@ -275,7 +314,7 @@ export function LivePage() {
               <div className="grid min-w-0 flex-1 grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4">
                 <Readout label="Frame rate" value={live_ok && !paused ? live.stats.fps.toFixed(1) : "—"} unit="fps" hint="Results per second (the server handles at most 5)." />
                 <Readout label="Latency" value={live.stats.latencyMs == null ? "—" : String(Math.round(live.stats.latencyMs))} unit="ms" hint="From sending a frame to getting its result back." />
-                <Readout label="Server time" value={live.stats.processMs == null ? "—" : String(Math.round(live.stats.processMs))} unit="ms" hint="Time the pipeline took on the server." />
+                <Readout label="Server time" value={live.stats.processMs == null ? "—" : String(Math.round(live.stats.processMs))} unit="ms" hint="Time the server took to check the frame." />
                 <Readout label="Defect area" value={result && !stale ? result.defect_area_percent.toFixed(2) : "—"} unit="%" />
               </div>
             </CardContent>
@@ -285,7 +324,7 @@ export function LivePage() {
             <p className="flex items-start gap-2 rounded-lg border border-warning/30 bg-warning/5 px-3 py-2 text-xs leading-relaxed text-muted-foreground" role="note">
               <TriangleAlert className="mt-0.5 size-3.5 shrink-0 text-warning" />
               <span>
-                Not calibrated yet. Untuned settings often call real cloth defective. Fill the dashed box with good, defect-free cloth and press <strong className="text-foreground">Calibrate</strong>; move the cloth a little while it takes {calibration.total} frames.
+                Not calibrated yet. General settings often call real cloth defective. Fill the dashed box with good, defect-free cloth and press <strong className="text-foreground">Calibrate</strong>; move the cloth a little while it takes {calibration.total} frames.
               </span>
             </p>
           )}
@@ -355,7 +394,7 @@ export function LivePage() {
                 <Button variant={paused ? "default" : "outline"} onClick={() => setPaused(!paused)}>{paused ? <Play /> : <Pause />}{paused ? "Resume" : "Pause"}</Button>
                 <Button onClick={() => void capture()} disabled={capturing} className="min-w-36">
                   {capturing ? <Loader2 className="animate-spin" /> : <Camera />}
-                  {capturing ? "Saving…" : "Capture"}
+                  {capturing ? "Saving…" : rollId !== undefined ? "Capture to roll" : "Capture"}
                 </Button>
                 <Button variant="outline" onClick={() => void calibrate()} disabled={calibration.running || paused} title="Learn what good cloth looks like on this camera, then judge against that">
                   {calibration.running ? <Loader2 className="animate-spin" /> : <Crosshair />}
@@ -387,29 +426,33 @@ export function LivePage() {
           <Card className="gap-4 py-4">
             <CardHeader><CardTitle>Settings</CardTitle></CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-1.5">
-                <div className="text-xs font-medium">Method</div>
-                <Select value={method} onValueChange={(v) => setMethodChoice(v as Method)} disabled={Boolean(profile)}>
-                  <SelectTrigger aria-label="Detection method"><SelectValue /></SelectTrigger>
-                  <SelectContent>{METHODS.map((m) => <SelectItem key={m} value={m}>{METHOD_LABELS[m]}</SelectItem>)}</SelectContent>
-                </Select>
-                {profile && <p className="text-[11px] text-muted-foreground">Fixed by the active profile ({profile.name}).</p>}
-              </div>
+              {engineering && (
+                <div className="space-y-1.5">
+                  <div className="text-xs font-medium">Method</div>
+                  <Select value={method} onValueChange={(v) => setMethodChoice(v as Method)} disabled={Boolean(profile)}>
+                    <SelectTrigger aria-label="Detection method"><SelectValue /></SelectTrigger>
+                    <SelectContent>{METHODS.map((m) => <SelectItem key={m} value={m}>{METHOD_LABELS[m]}</SelectItem>)}</SelectContent>
+                  </Select>
+                  {profile && <p className="text-[11px] text-muted-foreground">Fixed by the active profile ({profile.name}).</p>}
+                </div>
+              )}
               <div className="space-y-1.5">
                 <div className="text-xs font-medium">Profile</div>
                 <ProfileSelector className="w-full sm:w-full" />
-                <p className="text-[11px] leading-snug text-muted-foreground">A profile sets the thresholds and working size; without one, live mode works at {sendSide} px.</p>
+                <p className="text-[11px] leading-snug text-muted-foreground">{engineering ? `A profile sets the thresholds and working size; without one, live mode works at ${sendSide} px.` : "A profile holds the settings learned for one fabric. Without one, general settings are used."}</p>
               </div>
               <div className="space-y-1.5">
                 <div className="text-xs font-medium">Inspect area</div>
                 <Segmented label="Inspect area" value={area} onChange={setArea} options={AREAS} />
                 <p className="text-[11px] leading-snug text-muted-foreground">Black bars are always skipped. The middle option also ignores the outer part of the picture, where the edge of the cloth would be flagged.</p>
               </div>
-              <div className="space-y-1.5">
-                <div className="text-xs font-medium">Working size</div>
-                <Segmented label="Frame size" value={String(sendSide)} onChange={(v) => setSendSide(Number(v) as (typeof SEND_SIDES)[number])} options={SEND_SIDES.map((s) => ({ value: String(s), label: `${s} px` }))} />
-                <p className="text-[11px] leading-snug text-muted-foreground">How big the inspected picture is for the pipeline. Smaller is faster; larger sees finer defects.</p>
-              </div>
+              {engineering && (
+                <div className="space-y-1.5">
+                  <div className="text-xs font-medium">Working size</div>
+                  <Segmented label="Frame size" value={String(sendSide)} onChange={(v) => setSendSide(Number(v) as (typeof SEND_SIDES)[number])} options={SEND_SIDES.map((s) => ({ value: String(s), label: `${s} px` }))} />
+                  <p className="text-[11px] leading-snug text-muted-foreground">How big the inspected picture is for the pipeline. Smaller is faster; larger sees finer defects.</p>
+                </div>
+              )}
               {camera.devices.length > 0 && (
                 <div className="space-y-1.5">
                   <div className="text-xs font-medium">Camera</div>
