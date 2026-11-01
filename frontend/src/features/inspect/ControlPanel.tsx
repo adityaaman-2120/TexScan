@@ -10,6 +10,7 @@ import { Segmented } from "@/components/ui/segmented";
 import { Slider } from "@/components/ui/slider";
 import { useUi } from "@/store/ui";
 import { Dropzone } from "./Dropzone";
+import { ProfileNotes } from "./ProfileNotes";
 import { effectiveValue, sliderDefs, toOdd } from "./config";
 import { SENSITIVITIES } from "./sensitivity";
 import type { InspectSession } from "./useInspectSession";
@@ -81,7 +82,7 @@ function ProductControls({ session }: { session: InspectSession }) {
         </div>
         <div className="space-y-1.5">
           <Label hint="Settings learned from good samples of this fabric.">Fabric profile</Label>
-          <ProfileSelector className="w-full sm:w-full" />
+          <><ProfileSelector className="w-full sm:w-full" /><ProfileNotes /></>
         </div>
       </div>
     </Card>
@@ -126,7 +127,7 @@ export function ControlPanel({ session }: { session: InspectSession }) {
 
           <div className="space-y-1.5">
             <Label hint="Tuned thresholds from known-good images.">Profile</Label>
-            <ProfileSelector className="w-full sm:w-full" />
+            <><ProfileSelector className="w-full sm:w-full" /><ProfileNotes /></>
           </div>
 
           {method === "golden_template" && <ReferencePicker session={session} />}

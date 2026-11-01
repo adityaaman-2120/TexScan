@@ -1,4 +1,4 @@
-/** Pure helpers for the hero cloth: the scan beam's motion and where the planted defects sit. */
+/** Pure helpers for the hero photo: the scan beam's motion and where the marked defects sit on the picture. */
 
 export const clamp01 = (v: number): number => Math.min(1, Math.max(0, v));
 
@@ -26,24 +26,23 @@ export function stepToward(current: number, target: number, dtSeconds: number, r
   return current + (target - current) * (1 - Math.exp(-rate * Math.max(0, dtSeconds)));
 }
 
-export type SpotKind = "hole" | "stain" | "thread";
+/** The hero photograph: a real piece of damaged fabric. */
+export const PHOTO = { src: "/hero-fabric.jpg", width: 1672, height: 941 } as const;
 
-export interface Spot {
-  kind: SpotKind;
+export interface MarkedDefect {
   label: string;
-  /** Centre, as fractions of the cloth's width and height. */
-  cx: number;
-  cy: number;
-  /** Half the size, as a fraction of the cloth's height (for a thread: of its length's half-height). */
-  r: number;
-  /** Half-length of a thread as a fraction of the width. */
-  halfLength?: number;
+  /** Position and size as fractions of the photo's width and height. */
+  x: number;
+  y: number;
+  w: number;
+  h: number;
 }
 
-export const SPOTS: Spot[] = [
-  { kind: "hole", label: "Hole", cx: 0.3, cy: 0.33, r: 0.075 },
-  { kind: "stain", label: "Stain", cx: 0.73, cy: 0.58, r: 0.12 },
-  { kind: "thread", label: "Pulled thread", cx: 0.4, cy: 0.83, r: 0.024, halfLength: 0.26 },
+/** The three clearly visible defects in the photo, marked by hand (this is an illustration, not detector output). */
+export const MARKED: MarkedDefect[] = [
+  { label: "Hole", x: 752 / 1672, y: 586 / 941, w: 182 / 1672, h: 112 / 941 },
+  { label: "Stain", x: 818 / 1672, y: 168 / 941, w: 76 / 1672, h: 80 / 941 },
+  { label: "Tear", x: 1166 / 1672, y: 216 / 941, w: 30 / 1672, h: 72 / 941 },
 ];
 
 export interface Box {
@@ -53,9 +52,23 @@ export interface Box {
   h: number;
 }
 
-/** The box a spot occupies on a cloth of the given size, with a little breathing room. */
-export function spotBox(spot: Spot, width: number, height: number, pad = 0.012): Box {
-  const halfW = (spot.kind === "thread" ? (spot.halfLength ?? 0.2) * width : spot.r * height) + pad * height;
-  const halfH = spot.r * height + pad * height;
-  return { x: spot.cx * width - halfW, y: spot.cy * height - halfH, w: halfW * 2, h: halfH * 2 };
+/** How a picture is drawn to fill a canvas without stretching (CSS `object-fit: cover`): uniform scale, centred, overflow cropped. */
+export function coverTransform(imageW: number, imageH: number, canvasW: number, canvasH: number): { scale: number; dx: number; dy: number } {
+  const scale = Math.max(canvasW / imageW, canvasH / imageH);
+  return { scale, dx: (canvasW - imageW * scale) / 2, dy: (canvasH - imageH * scale) / 2 };
+}
+
+/** Where a marked defect lands on the canvas. Boxes smaller than `minSize` grow around their centre, and stay inside the canvas. */
+export function markedBox(defect: MarkedDefect, canvasW: number, canvasH: number, minSize = 0): Box {
+  const { scale, dx, dy } = coverTransform(PHOTO.width, PHOTO.height, canvasW, canvasH);
+  const w = Math.max(defect.w * PHOTO.width * scale, minSize);
+  const h = Math.max(defect.h * PHOTO.height * scale, minSize);
+  const cx = dx + (defect.x + defect.w / 2) * PHOTO.width * scale;
+  const cy = dy + (defect.y + defect.h / 2) * PHOTO.height * scale;
+  return {
+    x: Math.min(Math.max(cx - w / 2, 0), Math.max(canvasW - w, 0)),
+    y: Math.min(Math.max(cy - h / 2, 0), Math.max(canvasH - h, 0)),
+    w,
+    h,
+  };
 }

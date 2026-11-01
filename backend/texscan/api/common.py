@@ -102,13 +102,26 @@ def resolve_config(
         ).model_dump()
     except ProfileNotFoundError as exc:  # pragma: no cover - get_profile_or_404 already covers it
         raise ApiError(404, str(exc)) from exc
-    merged = deep_merge(base, parse_json_object(overrides_json))
+    overrides = parse_json_object(overrides_json)
+    merged = deep_merge(base, overrides)
+    if profile_id is not None:
+        _scale_min_area(base, overrides, merged)
     if method:
         merged["method"] = method
     try:
         return PipelineConfig.model_validate(merged)
     except ValidationError as exc:
         raise ApiError(422, f"invalid config: {_validation_message(exc)}") from exc
+
+
+def _scale_min_area(profile: dict[str, Any], overrides: dict[str, Any], merged: dict[str, Any]) -> None:
+    """A profile's min_area is in pixels of its own working size. Run at another size, keep it the same share of the picture
+    (area grows with the square of the side), unless the request sets min_area itself."""
+    side, tuned_side = overrides.get("max_side"), profile.get("max_side")
+    sets_area = "min_area" in (overrides.get("morphology") or {}) if isinstance(overrides.get("morphology"), dict) else False
+    if sets_area or not isinstance(side, (int, float)) or isinstance(side, bool) or not isinstance(tuned_side, int) or tuned_side <= 0 or side == tuned_side:
+        return
+    merged["morphology"]["min_area"] = max(1, round(profile["morphology"]["min_area"] * (side / tuned_side) ** 2))
 
 
 def require_reference(config: PipelineConfig, reference: UploadFile | None) -> Image | None:

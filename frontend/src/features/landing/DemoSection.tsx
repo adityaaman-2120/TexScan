@@ -1,35 +1,68 @@
 import { CircleCheck, CircleX, Loader2, Play } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { postForm } from "@/api/client";
 import { errorMessage, isUnreachable } from "@/api/errors";
 import type { ArenaOut } from "@/api/types";
-import { DEFECT_LABELS } from "@/features/inspect/defectLabels";
 import { formatShare, locationName, share, sizeClass } from "@/features/inspect/operator";
 import { cn } from "@/lib/utils";
-import { makeSample, SAMPLES, SAMPLE_SIZE, type SampleKind } from "./sample";
+import { enclosing, groupByProximity, padBox, reasonOf, ringContrast, type Box, type Pixels } from "./defectBoxes";
+import { DEMO_CONFIG, DEMO_METHOD, loadSample, SAMPLES, SAMPLE_SIZE, type SampleKind } from "./sample";
 
 const MAX_ROWS = 4;
 const THUMB = 64;
+const MERGE_GAP = 40; // pieces of one damaged spot closer than this (in sample pixels) get one box
+
+type DefectOut = ArenaOut["results"][number]["defects"][number];
 
 type Run =
   | { status: "idle" }
   | { status: "running" }
   | { status: "error"; message: string; unreachable: boolean }
-  | { status: "done"; kind: SampleKind; decision: "PASS" | "FAIL"; overlay: string | null; defects: ArenaOut["results"][number]["defects"]; ms: number };
+  | { status: "done"; kind: SampleKind; decision: "PASS" | "FAIL"; areas: Area[]; ms: number };
+
+interface Area {
+  /** The box to draw: the flagged pieces together, padded. */
+  box: Box;
+  /** The flagged region itself, before padding. */
+  core: Box;
+  area: number;
+  reason: string;
+}
+
+const boxOf = (d: DefectOut): Box => ({ x: d.bbox[0], y: d.bbox[1], w: d.bbox[2], h: d.bbox[3] });
+
+/** One red box and one written reason per damaged spot: nearby flagged pieces are merged, and the reason comes from the largest piece. */
+function areasOf(defects: DefectOut[], pixels: Pixels): Area[] {
+  return groupByProximity(defects.map(boxOf), MERGE_GAP).map((idx) => {
+    const members = idx.map((i) => defects[i]!);
+    const main = members.reduce((a, b) => (b.area > a.area ? b : a));
+    const core = enclosing(members.map(boxOf));
+    const contrast = main.contrast ?? ringContrast(pixels, boxOf(main)); // the arena does not report contrast, so measure it on the picture
+    return { box: padBox(core, SAMPLE_SIZE, SAMPLE_SIZE), core, area: members.reduce((s, d) => s + d.area, 0), reason: reasonOf({ ...main, contrast }) };
+  });
+}
 
 function toBlob(canvas: HTMLCanvasElement): Promise<Blob> {
   return new Promise((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("Could not prepare the sample image."))), "image/png"));
 }
 
-/** A small picture of a sample, drawn from the same generator as the specimen. */
+/** A small picture of a sample: its photo, scaled down. */
 function Swatch({ kind }: { kind: SampleKind }) {
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
-    const ctx = ref.current?.getContext("2d");
-    if (ctx) {
-      const s = makeSample(kind, THUMB);
-      ctx.putImageData(new ImageData(s.data, s.width, s.height), 0, 0);
-    }
+    let live = true;
+    loadSample(kind)
+      .then((img) => {
+        const ctx = live ? ref.current?.getContext("2d") : null;
+        if (ctx) {
+          ctx.imageSmoothingQuality = "high";
+          ctx.drawImage(img, 0, 0, THUMB, THUMB);
+        }
+      })
+      .catch(() => undefined); // the swatch just stays blank
+    return () => {
+      live = false;
+    };
   }, [kind]);
   return <canvas ref={ref} width={THUMB} height={THUMB} aria-hidden className="size-12 shrink-0 rounded-[3px] border" />;
 }
@@ -55,13 +88,20 @@ export function DemoSection() {
   const [run, setRun] = useState<Run>({ status: "idle" });
   const canvas = useRef<HTMLCanvasElement>(null);
   const ranOnce = useRef(false);
-  const sample = useMemo(() => makeSample(kind), [kind]);
   const info = SAMPLES.find((s) => s.kind === kind)!;
 
   useEffect(() => {
-    const ctx = canvas.current?.getContext("2d");
-    if (ctx) ctx.putImageData(new ImageData(sample.data, sample.width, sample.height), 0, 0);
-  }, [sample]);
+    let live = true;
+    loadSample(kind)
+      .then((img) => {
+        const ctx = live ? canvas.current?.getContext("2d") : null;
+        if (ctx) ctx.drawImage(img, 0, 0, SAMPLE_SIZE, SAMPLE_SIZE);
+      })
+      .catch((e) => setRun({ status: "error", message: errorMessage(e), unreachable: false }));
+    return () => {
+      live = false;
+    };
+  }, [kind]);
 
   const inspect = async (which: SampleKind) => {
     const el = canvas.current;
@@ -71,12 +111,13 @@ export function DemoSection() {
     try {
       const form = new FormData();
       form.append("image", new File([await toBlob(el)], `sample-${which}.png`, { type: "image/png" }));
-      form.append("methods", "fft");
-      form.append("config", JSON.stringify({ max_side: SAMPLE_SIZE }));
+      form.append("methods", DEMO_METHOD);
+      form.append("config", JSON.stringify(DEMO_CONFIG));
       const out = await postForm<ArenaOut>("/arena", form); // the Method Arena endpoint: it runs the pipeline and stores nothing
       const result = out.results[0];
       if (!result || result.status !== "ok" || !result.decision) throw new Error(result?.message ?? "The inspection did not return a result.");
-      setRun({ status: "done", kind: which, decision: result.decision, overlay: result.overlay ?? null, defects: result.defects, ms: result.total_ms ?? 0 });
+      const pixels = el.getContext("2d")!.getImageData(0, 0, el.width, el.height);
+      setRun({ status: "done", kind: which, decision: result.decision, areas: areasOf(result.defects, pixels), ms: result.total_ms ?? 0 });
     } catch (e) {
       setRun({ status: "error", message: errorMessage(e), unreachable: isUnreachable(e) });
     }
@@ -89,6 +130,7 @@ export function DemoSection() {
   };
 
   const done = run.status === "done" && run.kind === kind ? run : null;
+  const areas = done?.areas ?? [];
   const state = run.status === "running" ? "Scanning" : run.status === "error" ? "Fault" : done ? "Done" : "Ready";
 
   return (
@@ -143,15 +185,31 @@ export function DemoSection() {
               {run.status === "running" ? <Loader2 className="size-4 animate-spin" /> : <Play className="size-4" />}
               {run.status === "running" ? "Inspecting…" : done ? "Inspect again" : "Inspect this sample"}
             </button>
-            <span className="text-xs text-muted-foreground">Generated in your browser · {SAMPLE_SIZE} × {SAMPLE_SIZE}</span>
+            <span className="text-xs text-muted-foreground">A crop of a real photo · {SAMPLE_SIZE} × {SAMPLE_SIZE}</span>
           </div>
         </div>
 
         <div className="space-y-3 p-4 [&>*]:mx-auto [&>*]:w-full [&>*]:max-w-[520px]" aria-live="polite">
           <p className={LABEL}>Scan result</p>
           <div className="relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-md border bg-muted/60 p-0.5">
-            {done?.overlay ? (
-              <img src={done.overlay} alt={`Result for the ${info.label.toLowerCase()} sample with defects outlined`} className="size-full object-cover" />
+            {done ? (
+              <>
+                <img
+                  src={info.src}
+                  alt={`Result for the ${info.label.toLowerCase()} sample: ${areas.length === 0 ? "nothing flagged" : `${areas.length} flagged ${areas.length === 1 ? "area" : "areas"} boxed in red`}`}
+                  className="size-full object-cover"
+                />
+                {areas.map((a, i) => (
+                  <span
+                    key={i}
+                    aria-hidden
+                    className="pointer-events-none absolute border-2 border-destructive shadow-[0_0_0_1px_rgba(0,0,0,0.35)]"
+                    style={{ left: `${(a.box.x / SAMPLE_SIZE) * 100}%`, top: `${(a.box.y / SAMPLE_SIZE) * 100}%`, width: `${(a.box.w / SAMPLE_SIZE) * 100}%`, height: `${(a.box.h / SAMPLE_SIZE) * 100}%` }}
+                  >
+                    <span className="num absolute -top-px left-0 -translate-y-full bg-destructive px-1.5 py-0.5 text-[10px] font-bold leading-none text-destructive-foreground">{i + 1}</span>
+                  </span>
+                ))}
+              </>
             ) : run.status === "running" ? (
               <Loader2 className="size-8 animate-spin text-primary" aria-label="Inspecting" />
             ) : run.status === "error" ? (
@@ -180,24 +238,23 @@ export function DemoSection() {
                   {done.decision}
                 </div>
                 <span className="num text-xs text-muted-foreground">
-                  {done.defects.length === 0 ? "No defects found" : `${done.defects.length} ${done.defects.length === 1 ? "defect" : "defects"}`} · {Math.round(done.ms)} ms
+                  {areas.length === 0 ? "No defects found" : `${areas.length} ${areas.length === 1 ? "area" : "areas"} flagged`} · {Math.round(done.ms)} ms
                 </span>
               </div>
-              {done.defects.length > 0 && (
-                <ul className="divide-y rounded-md border" aria-label="Defects found">
-                  {done.defects.slice(0, MAX_ROWS).map((d) => {
-                    const [x, y, w, h] = d.bbox;
-                    return (
-                      <li key={d.id} className="flex flex-wrap items-center gap-x-3 gap-y-0.5 px-3 py-2 text-[13px]">
-                        <span className="font-medium">{DEFECT_LABELS[d.defect_type ?? "unknown"]}</span>
-                        <span className="num text-xs text-muted-foreground">
-                          {sizeClass(d.area, SAMPLE_SIZE, SAMPLE_SIZE)} · {formatShare(share(d.area, SAMPLE_SIZE, SAMPLE_SIZE))} of the picture
+              {areas.length > 0 && (
+                <ul className="divide-y rounded-md border" aria-label="Flagged areas">
+                  {areas.slice(0, MAX_ROWS).map((a, i) => (
+                    <li key={i} className="flex items-start gap-3 px-3 py-2 text-[13px]">
+                      <span className="num mt-0.5 grid size-5 shrink-0 place-items-center bg-destructive text-[10px] font-bold text-destructive-foreground">{i + 1}</span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block font-medium">{a.reason}</span>
+                        <span className="num block text-xs text-muted-foreground">
+                          {sizeClass(a.area, SAMPLE_SIZE, SAMPLE_SIZE)} · {formatShare(share(a.area, SAMPLE_SIZE, SAMPLE_SIZE))} of the picture · {locationName([a.core.x, a.core.y, a.core.w, a.core.h], SAMPLE_SIZE, SAMPLE_SIZE)}
                         </span>
-                        <span className="ml-auto text-xs text-muted-foreground">{locationName([x, y, w, h], SAMPLE_SIZE, SAMPLE_SIZE)}</span>
-                      </li>
-                    );
-                  })}
-                  {done.defects.length > MAX_ROWS && <li className="px-3 py-2 text-xs text-muted-foreground">and {done.defects.length - MAX_ROWS} more</li>}
+                      </span>
+                    </li>
+                  ))}
+                  {areas.length > MAX_ROWS && <li className="px-3 py-2 text-xs text-muted-foreground">and {areas.length - MAX_ROWS} more</li>}
                 </ul>
               )}
             </div>
@@ -208,7 +265,7 @@ export function DemoSection() {
       </div>
 
       <p className="border-t px-4 py-3 text-xs leading-relaxed text-muted-foreground">
-        A real inspection, run by the TexScan backend with default settings. Defect names are a best guess. The sample is not calibrated, so sizes are a share of the picture; with a calibrated profile the app reports millimetres and inches.
+        A real inspection, run by the TexScan backend. The settings are tuned for this cloth: real fabric is textured, so the plain defaults raise false alarms on it. Each red box is drawn around what the detector flagged, with some margin, and the reason is read from what was measured there, not a guess at what the defect is. The sample is not calibrated, so sizes are a share of the picture; with a calibrated profile the app reports millimetres and inches.
       </p>
     </div>
   );

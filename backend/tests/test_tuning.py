@@ -1,8 +1,11 @@
+import math
+
 import pytest
 
 from tests.conftest import add_blob, make_noisy_material, make_texture
 from texscan.pipeline import PipelineConfig, run_pipeline
-from texscan.tuning import MAX_IMAGES, MIN_IMAGES, TUNABLE, TuneReport, _loo_pass_rate, _min_area_from, auto_tune
+from texscan import tuning
+from texscan.tuning import MAX_IMAGES, MAX_THRESHOLD_STEPS, MIN_IMAGES, THRESHOLD_STEP, TUNABLE, TuneReport, _loo_pass_rate, _min_area_from, auto_tune
 
 GOOD = [make_noisy_material(s) for s in range(8)]
 HELD_OUT = [make_noisy_material(100 + s) for s in range(10)]
@@ -49,7 +52,10 @@ def test_report_contents_and_config_changes() -> None:
     assert getattr(getattr(tuned, section), field) == report.threshold >= floor
     p = report.score_percentiles
     assert p["p50"] < p["p99"] <= p["p99.5"] <= p["p99.9"] <= p["max"]
-    assert report.threshold == pytest.approx(p["p99.5"] * 1.1, rel=0.05)  # quantile * margin
+    # quantile * margin, raised by whole steps of THRESHOLD_STEP when the leftovers would have inflated min_area
+    steps = round(math.log(report.threshold / (p["p99.5"] * 1.1), THRESHOLD_STEP))
+    assert 0 <= steps <= MAX_THRESHOLD_STEPS
+    assert report.threshold == pytest.approx(p["p99.5"] * 1.1 * THRESHOLD_STEP**steps, rel=0.05)
     assert tuned.morphology.min_area == report.min_area >= base.morphology.min_area
     assert report.fp_max_area < report.min_area or report.fp_max_area == 0
     assert 0 <= report.loo_pass_rate <= 1
@@ -89,3 +95,22 @@ def test_rejects_wrong_image_counts_and_unsupported_method() -> None:
         auto_tune([GOOD[0]] * (MAX_IMAGES + 1), _cfg())
     with pytest.raises(ValueError, match="reference"):
         auto_tune(GOOD, _cfg("golden_template"))
+
+
+def test_cutoff_is_raised_before_min_area_swallows_small_defects(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A textured cloth leaves big false spots. The old rule inflated min_area to hide them; now the cut-off rises first."""
+    textured = [make_noisy_material(s, noise=25.0) for s in range(6)]
+    monkeypatch.setattr(tuning, "MAX_THRESHOLD_STEPS", 0)  # the old behaviour
+    old_cfg, old = auto_tune(textured, _cfg("gabor"))
+    monkeypatch.undo()
+    new_cfg, new = auto_tune(textured, _cfg("gabor"))
+    assert new.min_area <= old.min_area
+    assert new.threshold >= old.threshold
+    if new.threshold > old.threshold:
+        assert any("cut-off was raised" in w for w in new.warnings)
+    assert _passes(textured, new_cfg) == len(textured)  # the images used for tuning still pass
+
+
+def test_cutoff_is_not_raised_when_the_leftovers_are_already_small() -> None:
+    _, report = auto_tune([make_texture("sinusoid", seed=s) for s in range(6)], _cfg("local_statistics"))
+    assert not any("cut-off was raised" in w for w in report.warnings)

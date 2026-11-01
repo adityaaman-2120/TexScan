@@ -15,6 +15,13 @@ from texscan.pipeline.types import Image
 MIN_IMAGES, MAX_IMAGES = 5, 20
 _SAMPLES_PER_IMAGE = 200_000
 
+# The area filter hides every defect smaller than min_area, so it must not swallow the leftovers of a textured cloth
+# at the cost of small real defects. Instead the cut-off is raised, a little at a time, until the filter needs to
+# hide at most this share of the picture (or the steps run out).
+MIN_AREA_SHARE = 0.0015
+THRESHOLD_STEP = 1.1
+MAX_THRESHOLD_STEPS = 5
+
 # method -> (config section, field, lowest sane value). The tuned field is the score cut-off of that method.
 TUNABLE: dict[str, tuple[str, str, float]] = {
     "fft": ("threshold", "min_threshold", 1.0),  # gray levels of the smoothed residual
@@ -112,6 +119,8 @@ def auto_tune(
     2. Re-run at that threshold with no area filter; min_area = largest leftover component * area_margin
        (never below the base min_area), so every image used for tuning passes. The margin of 2 is there because
        the largest component of a few images underestimates that of unseen ones (see loo_pass_rate in the report).
+    3. If that min_area is more than MIN_AREA_SHARE of the picture, small defects would be ignored; raise the
+       threshold by THRESHOLD_STEP (up to MAX_THRESHOLD_STEPS times) and repeat step 2.
     """
     cfg = base or PipelineConfig()
     if cfg.method not in TUNABLE:
@@ -123,14 +132,23 @@ def auto_tune(
     rng = np.random.default_rng(0)
     scores = np.concatenate([_interior_sample(run_pipeline(img, cfg), cfg, rng) for img in images])
     threshold = max(float(np.percentile(scores, quantile)) * margin, floor)
-    tuned = _replace(cfg, section, **{field: threshold})
 
-    per_image, image_size = _false_positive_areas(images, tuned)
-    per_image_max = [max(a, default=0) for a in per_image]
-    min_area = _min_area_from(per_image_max, cfg.morphology.min_area, area_margin)
+    raised = 0
+    while True:
+        tuned = _replace(cfg, section, **{field: threshold})
+        per_image, image_size = _false_positive_areas(images, tuned)
+        per_image_max = [max(a, default=0) for a in per_image]
+        min_area = _min_area_from(per_image_max, cfg.morphology.min_area, area_margin)
+        allowed = max(MIN_AREA_SHARE * image_size, 1.5 * cfg.morphology.min_area)  # reachable even for a small picture
+        if min_area <= allowed or raised >= MAX_THRESHOLD_STEPS:
+            break
+        threshold *= THRESHOLD_STEP
+        raised += 1
     tuned = _replace(tuned, "morphology", min_area=min_area)
 
     warnings = []
+    if raised:
+        warnings.append(f"the cut-off was raised {raised} time{'s' if raised > 1 else ''} because this cloth's texture leaves many false spots; very faint defects may be missed")
     if min_area > 0.001 * image_size:
         warnings.append(f"min_area={min_area}px is large; real defects smaller than that will be ignored")
     if threshold <= floor:

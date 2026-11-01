@@ -2,6 +2,7 @@ import { Eye, Frame, Layers, Layout, Layers2, Thermometer, TriangleAlert } from 
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { requireNav } from "@/app/nav";
+import { cn } from "@/lib/utils";
 import { useUi } from "@/store/ui";
 import { hotkeyFor } from "@/lib/hotkeys";
 import { Stagger, StaggerItem } from "@/components/motion";
@@ -13,6 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Slider } from "@/components/ui/slider";
 import { CompareSlider } from "./CompareSlider";
 import { ControlPanel } from "./ControlPanel";
+import { CoverageNote } from "./CoverageNote";
 import { DefectTable } from "./DefectTable";
 import { ProductDefects } from "./ProductDefects";
 import { Dropzone } from "./Dropzone";
@@ -155,11 +157,18 @@ export function InspectPage() {
           {!session.file ? (
             <Dropzone onFile={session.acceptFile} />
           ) : (
-            <Stagger className="space-y-5" key={session.file.name + session.file.size}>
+            <Stagger className={cn("space-y-5 transition-opacity", session.needsReference && result && "opacity-50")} key={session.file.name + session.file.size}>
+              {session.needsReference && result && (
+                <p role="alert" className="flex items-start gap-2 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-warning">
+                  <TriangleAlert className="mt-0.5 size-4 shrink-0" />
+                  Choose a reference image to run Golden template. The result below is from the earlier settings and is out of date.
+                </p>
+              )}
               <StaggerItem>
                 <Card className="py-5">
                   <CardContent>
                     <VerdictHeader result={result} running={running} onXRay={() => setXray(true)} engineering={engineering} />
+                    {result && <CoverageNote result={result} />}
                     {result?.decision === "FAIL" && profileId === null && (
                       <p role="note" className="mt-4 flex items-start gap-2 rounded-lg border border-warning/30 bg-warning/5 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
                         <TriangleAlert className="mt-0.5 size-3.5 shrink-0 text-warning" />

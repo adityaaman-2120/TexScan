@@ -1,13 +1,13 @@
 import { useEffect, useRef } from "react";
-import { renderCloth, renderScanned } from "./clothRender";
-import { clamp01, invertPingPong, pingPong, stepToward } from "./scanMath";
+import { renderPhoto, renderScanned } from "./clothRender";
+import { clamp01, invertPingPong, PHOTO, pingPong, stepToward } from "./scanMath";
 
 const SWEEP_SECONDS = 11;
 const IDLE_AFTER_MS = 2200; // the beam goes back to sweeping by itself this long after the pointer stops
 
 /**
- * Woven cloth with defects, drawn on a canvas. A scan beam passes over it: behind the beam the cloth is shown as the
- * scanner sees it, defects outlined and named. The beam follows the pointer, and sweeps by itself otherwise.
+ * A photo of damaged fabric on a canvas. A scan beam passes over it: behind the beam the photo is shown as the
+ * scanner sees it, with its (hand-marked) defects outlined and named. The beam follows the pointer, and sweeps by itself otherwise.
  * Decorative: it shows no data, so it is hidden from assistive technology.
  */
 export function HeroCloth({ className }: { className?: string }) {
@@ -78,10 +78,22 @@ export function HeroCloth({ className }: { className?: string }) {
       el.width = w;
       el.height = h;
       drawnX = -1;
-      raw = renderCloth(w, h, dpr);
+      if (!image.complete || image.naturalWidth === 0) {
+        ctx.fillStyle = "#05070b";
+        ctx.fillRect(0, 0, w, h);
+        return;
+      }
+      raw = renderPhoto(image, w, h);
       scanned = renderScanned(raw, dpr);
       draw();
     };
+
+    const image = new Image();
+    image.onload = () => {
+      raw = null; // force a rebuild now the photo is here
+      build();
+    };
+    image.src = PHOTO.src;
 
     // the loop: pointer steers the beam, otherwise it sweeps; the sweep resumes from the beam's position
     let autoSeconds = 0;

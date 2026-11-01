@@ -74,7 +74,7 @@ export function LandingPage() {
                 </h2>
               </div>
               <p className="max-w-sm text-[15px] leading-relaxed text-muted-foreground md:justify-self-end">
-                Pick a specimen and run it through the same inspection the app uses. The sample is generated in your browser, and nothing is saved.
+                Pick a specimen and run it through the same inspection the app uses. The samples are crops of one real photo of damaged fabric, and nothing is saved.
               </p>
             </div>
             <DemoSection />

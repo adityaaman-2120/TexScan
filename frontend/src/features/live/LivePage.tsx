@@ -20,6 +20,7 @@ import { DEFECT_LABELS, type DefectKind } from "@/features/inspect/defectLabels"
 import { formatMetres, nextPosition } from "@/features/rolls/rollMath";
 import { cn } from "@/lib/utils";
 import { useUi } from "@/store/ui";
+import { ProfileNotes } from "@/features/inspect/ProfileNotes";
 import { captureFullFrame } from "./frames";
 import { centerFraction, isStale, placeBox, regionRect, WHOLE_FRAME, type InspectArea } from "./liveMath";
 import { useCalibrate } from "./useCalibrate";
@@ -439,6 +440,7 @@ export function LivePage() {
               <div className="space-y-1.5">
                 <div className="text-xs font-medium">Profile</div>
                 <ProfileSelector className="w-full sm:w-full" />
+                <ProfileNotes />
                 <p className="text-[11px] leading-snug text-muted-foreground">{engineering ? `A profile sets the thresholds and working size; without one, live mode works at ${sendSide} px.` : "A profile holds the settings learned for one fabric. Without one, general settings are used."}</p>
               </div>
               <div className="space-y-1.5">
