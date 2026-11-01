@@ -1,18 +1,14 @@
-import { Database, FlaskConical } from "lucide-react";
+import { Database } from "lucide-react";
 import { useEffect, useState } from "react";
 import { fileUrl } from "@/api/client";
 import { useMvtecSamples, useMvtecStatus } from "@/api/hooks";
 import type { MvtecSample } from "@/api/types";
-import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { Segmented } from "@/components/ui/segmented";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { SAMPLES, type SampleImage } from "@/features/inspect/samples";
 import { cn } from "@/lib/utils";
 
 interface SampleBrowserProps {
-  onSynthetic: (sample: SampleImage) => void;
   onMvtec: (sample: MvtecSample) => void;
   activeLabel: string | null;
 }
@@ -76,43 +72,14 @@ function MvtecPanel({ onPick, activeLabel }: { onPick: (s: MvtecSample) => void;
   );
 }
 
-export function SampleBrowser({ onSynthetic, onMvtec, activeLabel }: SampleBrowserProps) {
-  const [source, setSource] = useState<"synthetic" | "mvtec">("synthetic");
+export function SampleBrowser({ onMvtec, activeLabel }: SampleBrowserProps) {
   return (
     <Card className="gap-4 p-4 py-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <div className="text-sm font-medium">Pick a sample</div>
-          <div className="text-xs text-muted-foreground">Each comes with its ground-truth mask.</div>
-        </div>
-        <Segmented
-          label="Sample source"
-          value={source}
-          onChange={setSource}
-          options={[{ value: "synthetic", label: "Synthetic", icon: FlaskConical }, { value: "mvtec", label: "MVTec AD", icon: Database }]}
-        />
+      <div>
+        <div className="text-sm font-medium">MVTec AD samples</div>
+        <div className="text-xs text-muted-foreground">Each comes with its ground-truth mask.</div>
       </div>
-      {source === "synthetic" ? (
-        <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-7" aria-label="Synthetic samples">
-          {SAMPLES.map((s) => (
-            <li key={s.id}>
-              <button
-                type="button"
-                onClick={() => onSynthetic(s)}
-                aria-label={`Use sample ${s.title}`}
-                title={s.description}
-                className={cn("relative block w-full overflow-hidden rounded-md border text-left outline-none transition-all hover:border-primary/60 focus-visible:ring-[3px] focus-visible:ring-ring", activeLabel === s.title && "border-primary ring-1 ring-primary/50")}
-              >
-                <img src={s.url} alt="" loading="lazy" className="aspect-square w-full object-cover" />
-                <span className="block truncate px-2 py-1 text-[11px]">{s.title}</span>
-                {!s.defective && <Badge variant="muted" className="absolute left-1 top-1 bg-background/80 text-[10px]">clean</Badge>}
-              </button>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <MvtecPanel onPick={onMvtec} activeLabel={activeLabel} />
-      )}
+      <MvtecPanel onPick={onMvtec} activeLabel={activeLabel} />
     </Card>
   );
 }

@@ -4,10 +4,8 @@ import { toast } from "sonner";
 import { client, postForm } from "@/api/client";
 import { errorMessage } from "@/api/errors";
 import type { InspectionOut, Method } from "@/api/types";
-import { fetchFile } from "@/lib/files";
 import { useUi } from "@/store/ui";
 import { toConfig, type Overrides } from "./config";
-import type { SampleImage } from "./samples";
 
 const DEBOUNCE_MS = 350;
 
@@ -22,7 +20,6 @@ export function useInspectSession() {
   const profileId = useUi((s) => s.profileId);
 
   const [file, setFile] = useState<File | null>(null);
-  const [sample, setSample] = useState<SampleImage | null>(null);
   const [method, setMethodState] = useState<Method>("gabor"); // measured on 64 clean + 64 defective synthetic images of four textures: no false alarms, every defect found. FFT only suits periodic weaves.
   const [overrides, setOverrides] = useState<Overrides>({});
   const [reference, setReference] = useState<File | null>(null);
@@ -35,39 +32,14 @@ export function useInspectSession() {
 
   const needsReference = method === "golden_template" && !reference;
 
-  // a sample brings its own reference image; fetch it when the golden-template method needs one
-  useEffect(() => {
-    if (method === "golden_template" && !reference && sample) {
-      let alive = true;
-      fetchFile(sample.reference)
-        .then((f) => alive && setReference(f))
-        .catch(() => undefined);
-      return () => {
-        alive = false;
-      };
-    }
-  }, [method, reference, sample]);
-
-  const loadFile = useCallback((next: File, from: SampleImage | null = null) => {
+  const loadFile = useCallback((next: File) => {
     immediate.current = true;
     lastId.current = null; // the previous image's final result stays in History
     seq.current += 1;
     setFile(next);
-    setSample(from);
     setResult(null);
     setReference(null);
-    if (from) {
-      setMethodState(from.method);
-      setOverrides({});
-    }
   }, []);
-
-  const loadSample = useCallback(
-    (s: SampleImage) => {
-      fetchFile(s.url).then((f) => loadFile(f, s)).catch((e) => toast.error("Could not load the sample", { description: errorMessage(e) }));
-    },
-    [loadFile],
-  );
 
   const setMethod = useCallback((m: Method) => {
     setMethodState(m);
@@ -133,8 +105,8 @@ export function useInspectSession() {
   );
 
   return {
-    file, sample, method, setMethod, overrides, setOverride, resetOverrides, reference, setReference, needsReference,
-    result, running, loadSample, acceptFile,
+    file, method, setMethod, overrides, setOverride, resetOverrides, reference, setReference, needsReference,
+    result, running, acceptFile,
   }; // fmt: skip
 }
 

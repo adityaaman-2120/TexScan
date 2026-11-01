@@ -3,7 +3,6 @@ import { toast } from "sonner";
 import { fileUrl, isAbort, postForm } from "@/api/client";
 import { errorMessage } from "@/api/errors";
 import type { ArenaOut, MvtecSample } from "@/api/types";
-import type { SampleImage } from "@/features/inspect/samples";
 import { fetchFile } from "@/lib/files";
 
 export type WorkingSize = 512 | 1024;
@@ -87,15 +86,6 @@ export function useArena() {
 
   const fail = (e: unknown) => toast.error("Could not load the sample", { description: errorMessage(e) });
 
-  const loadSample = useCallback(
-    (s: SampleImage) => {
-      Promise.all([fetchFile(s.url), fetchFile(s.mask), fetchFile(s.reference)])
-        .then(([img, mask, ref]) => loadSet(s.title, { image: img, mask, reference: ref }))
-        .catch(fail);
-    },
-    [loadSet],
-  );
-
   const loadMvtec = useCallback(
     (s: MvtecSample) => {
       const base = `/datasets/mvtec`;
@@ -111,7 +101,7 @@ export function useArena() {
     [loadSet],
   );
 
-  return { image, imageUrl, groundTruth, gtUrl, reference, referenceUrl, label, size, setSize, result, running, setImage, setGroundTruth, setReference, loadSample, loadMvtec };
+  return { image, imageUrl, groundTruth, gtUrl, reference, referenceUrl, label, size, setSize, result, running, setImage, setGroundTruth, setReference, loadMvtec };
 }
 
 export type ArenaState = ReturnType<typeof useArena>;

@@ -23,7 +23,7 @@ export const SYLLABUS: SyllabusItem[] = [
     coverage: "full",
     summary: "Files in any common format (PNG, JPEG, BMP, TIFF, WebP) are decoded, converted to grayscale with the luma weights 0.299 R + 0.587 G + 0.114 B and resized to a working size.",
     path: "/inspect",
-    where: "Inspect: drop, paste or pick a sample",
+    where: "Inspect: drop, browse or paste an image",
     code: "pipeline/load.py, imageio.py",
   },
   {

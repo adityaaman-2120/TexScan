@@ -3,8 +3,6 @@ import { toast } from "sonner";
 import { isAbort, postForm } from "@/api/client";
 import { errorMessage } from "@/api/errors";
 import type { SpectrumApplyOut, SpectrumOut } from "@/api/types";
-import type { SampleImage } from "@/features/inspect/samples";
-import { fetchFile } from "@/lib/files";
 import { useUi } from "@/store/ui";
 import { cutoffPx, DEFAULT_PRESET, pairPeaks, type Preset } from "./filters";
 import { canvasToBlob, composeMask, newCanvas } from "./mask";
@@ -28,7 +26,6 @@ export function useSpectrumStudio() {
   const profileId = useUi((s) => s.profileId);
 
   const [file, setFile] = useState<File | null>(null);
-  const [sample, setSample] = useState<SampleImage | null>(null);
   const [resolution, setResolution] = useState<Resolution>(512);
   const [spectrum, setSpectrum] = useState<SpectrumOut | null>(null);
   const [loadingSpectrum, setLoadingSpectrum] = useState(false);
@@ -173,17 +170,9 @@ export function useSpectrumStudio() {
     schedule();
   }, [schedule]);
 
-  const loadFile = useCallback((next: File, from: SampleImage | null = null) => {
+  const loadFile = useCallback((next: File) => {
     setFile(next);
-    setSample(from);
   }, []);
-
-  const loadSample = useCallback(
-    (s: SampleImage) => {
-      fetchFile(s.url).then((f) => loadFile(f, s)).catch((e) => toast.error("Could not load the sample", { description: errorMessage(e) }));
-    },
-    [loadFile],
-  );
 
   const acceptFile = useCallback(
     (candidate: File | undefined | null) => {
@@ -198,9 +187,9 @@ export function useSpectrumStudio() {
   );
 
   return {
-    file, sample, resolution, setResolution, spectrum, loadingSpectrum, pairs, enabled, togglePair, setAllPairs,
+    file, resolution, setResolution, spectrum, loadingSpectrum, pairs, enabled, togglePair, setAllPairs,
     tool, setTool, brushRadius, setBrushRadius, symmetric, setSymmetric, peakRadius, setPeakRadius, preset, setPreset,
-    paint, hasPaint, notifyPaint, clearPaint, resetAll, result, applying, loadSample, acceptFile,
+    paint, hasPaint, notifyPaint, clearPaint, resetAll, result, applying, acceptFile,
   }; // fmt: skip
 }
 

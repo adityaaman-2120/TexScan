@@ -1,6 +1,5 @@
 import { RotateCcw } from "lucide-react";
 import { Dropzone } from "@/features/inspect/Dropzone";
-import { SampleGallery } from "@/features/inspect/SampleGallery";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Segmented } from "@/components/ui/segmented";
@@ -51,10 +50,6 @@ export function ControlsPanel({ studio }: { studio: SpectrumStudio }) {
     <div className="space-y-4">
       <Card className="gap-3 p-3 py-3">
         <Dropzone compact onFile={studio.acceptFile} />
-        <div className="px-1">
-          <div className="mb-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Try a sample</div>
-          <SampleGallery variant="mini" onPick={studio.loadSample} activeId={studio.sample?.id} />
-        </div>
       </Card>
 
       <Card className="gap-4 px-4 py-4">

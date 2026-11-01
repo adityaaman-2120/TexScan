@@ -3,8 +3,6 @@ import { toast } from "sonner";
 import { isAbort, postForm } from "@/api/client";
 import { errorMessage } from "@/api/errors";
 import type { RobustnessOut } from "@/api/types";
-import type { SampleImage } from "@/features/inspect/samples";
-import { fetchFile } from "@/lib/files";
 import { useUi } from "@/store/ui";
 import { levelsFor, type Degradation } from "./levels";
 
@@ -67,15 +65,6 @@ export function useRobustness() {
     [],
   );
 
-  const loadSample = useCallback((s: SampleImage) => {
-    fetchFile(s.url)
-      .then((file) => {
-        setImage(file);
-        setResult(null);
-      })
-      .catch((e) => toast.error("Could not load the sample", { description: errorMessage(e) }));
-  }, []);
-
   const acceptFile = useCallback((file: File | undefined | null) => {
     if (!file) return;
     if (!file.type.startsWith("image/")) {
@@ -86,7 +75,7 @@ export function useRobustness() {
     setResult(null);
   }, []);
 
-  return { image, kind, setKind, steps, setSteps, method, setMethod, size, setSize, result, resultKind, running, profileId, loadSample, acceptFile };
+  return { image, kind, setKind, steps, setSteps, method, setMethod, size, setSize, result, resultKind, running, profileId, acceptFile };
 }
 
 export type RobustnessState = ReturnType<typeof useRobustness>;

@@ -17,7 +17,7 @@ The **About** page in the app maps each lab syllabus topic to the page and sourc
 
 ## Contents
 [The problem](#the-problem) · [Architecture](#architecture) · [The pipeline](#the-pipeline) · [Detection methods](#detection-methods) ·
-[Benchmark](#benchmark) · [Setup](#setup) · [Demo data](#demo-data) · [MVTec AD download](#mvtec-ad-download) · [The app](#the-app) · [API](#api) ·
+[Benchmark](#benchmark) · [Setup](#setup) · [MVTec AD download](#mvtec-ad-download) · [The app](#the-app) · [API](#api) ·
 [Profiles and the CLI](#profiles-and-the-cli) · [Tests](#tests) · [Limits](#limits)
 
 ## The problem
@@ -65,7 +65,7 @@ flowchart LR
 * `backend/texscan/api/`: FastAPI routers, Pydantic schemas, background batches, the `/ws/live` stream. File and database I/O live here, never in the pipeline.
 * `backend/texscan/eval/`, `robustness.py`, `tuning.py`, `profiles.py`, `report/`: evaluation, stress tests, threshold tuning, PDF export.
 * `frontend/`: React app. The API client is **generated from the backend OpenAPI schema** (`make api-types`), so response types are never written by hand.
-* `data/`: the SQLite file, stored stage images, sample images and results (git-ignored except `data/samples/`).
+* `data/`: the SQLite file, stored stage images, and results (git-ignored).
 
 ## The pipeline
 
@@ -177,24 +177,11 @@ cd frontend; npm install; cd ..
 | `make dev` / `.\dev.ps1` | backend + frontend |
 | `make dev-lan` / `.\dev.ps1 -Lan` | same, frontend over HTTPS on your network (for a phone camera, see [Live](#live)) |
 | `make test` | backend pytest suite (frontend: `cd frontend && npm test`) |
-| `make seed` | load demo data, see [Demo data](#demo-data) |
 | `make eval` / `make eval-demo` | benchmark on MVTec AD / on a generated toy set |
 | `make api-types` | re-export the OpenAPI schema and regenerate the typed frontend client (run after changing an endpoint or schema) |
 
 Environment variables: `TEXSCAN_DB` (SQLite file, default `data/texscan.db`), `TEXSCAN_DATA_DIR` (stage images, default `data/inspections`),
 `TEXSCAN_CORS_ORIGINS`, `MVTEC_PATH` (dataset folder), `VITE_API_TARGET` (point the dev server at another backend, e.g. `http://127.0.0.1:9000`).
-
-## Demo data
-An empty dashboard makes a poor demo. This loads **20 synthetic inspections** (weave, plaid, cloth and leather textures, with and without planted holes, scratches, stains and tears),
-spreads their timestamps over the last two weeks, tunes a profile called "Demo weave" from six clean weaves, and groups the last eight images into one batch so the batch PDF report can be shown too.
-
-```bash
-make seed                # first time
-make seed FORCE=1        # replace earlier demo data (only rows named demo-*.png and the "Demo weave" profile)
-# without make:  backend/.venv/Scripts/python backend/scripts/seed_demo.py [--force]
-```
-
-Every inspection is a real pipeline run, so the outcomes are whatever the methods decide, mistakes included. It writes to `data/texscan.db`; set `TEXSCAN_DB` first to seed a different file.
 
 ## MVTec AD download
 1. Download **MVTec AD** from <https://www.mvtec.com/company/research/datasets/mvtec-ad> (about 5 GB; you only need the five texture categories; free for non-commercial use, CC BY-NC-SA 4.0).
@@ -218,7 +205,7 @@ All pages are registered once in `frontend/src/app/nav.ts`; the sidebar, the com
 Letter shortcuts are ignored while you type or a menu / dialog is open.
 
 ### Inspect
-`/inspect`: drop, browse or paste an image, or click a sample (synthetic textures with planted defects from `backend/scripts/make_samples.py`).
+`/inspect`: drop, browse or paste an image.
 * Left panel: method, profile, and an *Advanced* section with sliders (denoise kernel, threshold, minimum area, cleanup kernel, notch radius, window) and the **Bit-plane viewer** (all eight planes of the grayscale image, click one to enlarge). A change re-runs the inspection after a 350 ms pause; re-runs of the same image replace each other in History.
 * Result: animated PASS / FAIL, a zoomable viewer (scroll, drag, double-click to fit) with overlay modes Boxes / Mask / Edges / Heatmap, a before / after wipe, the defect table, histograms before and after enhancement and a timing chart.
 * **Pipeline X-Ray** (`X`): step through every stage image with a plain-English explanation and formula.
@@ -301,7 +288,7 @@ python -m texscan.cli inspect fabric.png --profile "Denim"
 
 ## Tests
 ```bash
-make test                       # backend: pipeline steps, detectors, API, reports, profiles, eval, seed script
+make test                       # backend: pipeline steps, detectors, API, reports, profiles, eval
 cd frontend && npm test         # frontend: pure UI logic (viewport math, config mapping, stage text, hotkeys, error handling…)
 cd frontend && npx tsc -b       # type check (strict, no any)
 ```
@@ -316,6 +303,6 @@ Frontend conventions: the API client is generated from the OpenAPI schema (never
 
 ## Limits
 * Classical methods have well-known limits: the FFT method needs a periodic texture; `local_statistics` and `gabor` flag any strongly non-uniform region, so real photographs with uneven lighting need a tuned profile; `golden_template` needs a reference taken under similar conditions.
-* The sample images and the demo data are **synthetic**. Real-world performance has to be measured on MVTec AD (see above) or your own photographs.
+* The synthetic smoke test is **not a benchmark**. Real-world performance has to be measured on MVTec AD (see above) or your own photographs.
 * There is no spatial-domain sharpening filter and no deblurring; restoration means notch-filtering a known periodic pattern.
 * Live inspection is about 5 fps at most and depends on the machine running the backend. Phone use needs HTTPS (`make dev-lan`).

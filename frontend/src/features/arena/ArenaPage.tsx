@@ -62,13 +62,13 @@ function Compare() {
 
   return (
     <div className="space-y-5">
-      <SampleBrowser onSynthetic={arena.loadSample} onMvtec={arena.loadMvtec} activeLabel={arena.label} />
+      <SampleBrowser onMvtec={arena.loadMvtec} activeLabel={arena.label} />
 
       <Card className="gap-4 p-4 py-4">
         {!arena.image ? (
           <div className="grid items-center gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
             <Dropzone compact onFile={(f) => f && arena.setImage(f)} />
-            <p className="text-[13px] text-muted-foreground">Upload your own image (optionally with its ground-truth mask), or pick a sample above. All four methods run on the same image and are scored against the mask.</p>
+            <p className="text-[13px] text-muted-foreground">Upload your own image (optionally with its ground-truth mask), or pick an MVTec AD sample above. All four methods run on the same image and are scored against the mask.</p>
           </div>
         ) : (
           <div className="grid gap-4 md:grid-cols-3">
@@ -87,7 +87,7 @@ function Compare() {
       </Card>
 
       {!arena.image ? (
-        <Card><EmptyState illustration="compare" title="Nothing to compare yet" description="Choose a sample or upload an image and the four detection methods will be shown side by side." /></Card>
+        <Card><EmptyState illustration="compare" title="Nothing to compare yet" description="Upload an image or pick an MVTec AD sample and the four detection methods will be shown side by side." /></Card>
       ) : (
         <>
           <div className="flex flex-wrap items-center justify-between gap-3" aria-live="polite">

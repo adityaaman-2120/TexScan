@@ -11,7 +11,6 @@ import { Segmented } from "@/components/ui/segmented";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dropzone } from "@/features/inspect/Dropzone";
-import { SampleGallery } from "@/features/inspect/SampleGallery";
 import { cn } from "@/lib/utils";
 import { DegradationChart, QualityCharts } from "./DegradationCharts";
 import { decisionRanges, describeRanges, DEGRADATIONS, DEGRADATION_ORDER, formatBytes, formatLevel } from "./levels";
@@ -37,10 +36,6 @@ export function RobustnessPage() {
         <aside className="order-2 space-y-4 lg:order-1 lg:sticky lg:top-20 lg:max-h-[calc(100dvh-6rem)] lg:self-start lg:overflow-y-auto lg:pr-1">
           <Card className="gap-3 p-3 py-3">
             <Dropzone compact={Boolean(lab.image)} onFile={lab.acceptFile} />
-            <div className="px-1">
-              <div className="mb-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Or try a sample</div>
-              <SampleGallery variant="mini" onPick={lab.loadSample} />
-            </div>
           </Card>
 
           <Card className="gap-4 px-4 py-4">
@@ -73,7 +68,7 @@ export function RobustnessPage() {
 
         <div className="order-1 min-w-0 lg:order-2">
           {!lab.image ? (
-            <Card><EmptyState illustration="lab" title="Choose an image to stress-test" description="Pick a sample or upload an image. TexScan degrades it step by step (noise, blur, exposure or JPEG compression) and shows where the verdict breaks down. Try the clean weave with noise: a good image can start failing." /></Card>
+            <Card><EmptyState illustration="lab" title="Choose an image to stress-test" description="Upload an image. TexScan degrades it step by step (noise, blur, exposure or JPEG compression) and shows where the verdict breaks down. Try a clean image with noise: a good image can start failing." /></Card>
           ) : (
             <Stagger className="space-y-5" key={lab.image.name + lab.image.size}>
               <StaggerItem>

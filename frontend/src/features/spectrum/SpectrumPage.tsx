@@ -9,7 +9,6 @@ import { Segmented, type SegmentOption } from "@/components/ui/segmented";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Slider } from "@/components/ui/slider";
 import { Dropzone } from "@/features/inspect/Dropzone";
-import { SampleGallery } from "@/features/inspect/SampleGallery";
 import { cn } from "@/lib/utils";
 import { ControlsPanel } from "./ControlsPanel";
 import { InfoPanel } from "./InfoPanel";
@@ -52,15 +51,9 @@ export function SpectrumPage() {
       <PageHeader icon={item.icon} title={item.label} description={item.description} />
 
       {!file ? (
-        <div className="space-y-5">
+        <div className="space-y-3">
           <Dropzone onFile={acceptFile} />
-          <section aria-labelledby="spectrum-samples">
-            <h2 id="spectrum-samples" className="mb-3 text-sm font-semibold">
-              Or try a sample
-            </h2>
-            <SampleGallery onPick={studio.loadSample} />
-            <p className="mt-3 text-xs text-muted-foreground">Periodic textures (weave, plaid) show the clearest peaks. The leather grain has none: try it to see what a non-periodic spectrum looks like.</p>
-          </section>
+          <p className="text-xs text-muted-foreground">Periodic textures (weave, plaid) show the clearest peaks. Non-periodic grain, such as leather, has none.</p>
         </div>
       ) : (
         <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">

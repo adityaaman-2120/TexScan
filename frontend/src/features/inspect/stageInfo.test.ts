@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { InspectionOut } from "@/api/types";
 import { heatColor } from "./imageFx";
-import { SAMPLES } from "./samples";
 import { heatKey, residualKey, stageInfo } from "./stageInfo";
 
 type Config = InspectionOut["config"];
@@ -88,19 +87,5 @@ describe("heatColor", () => {
   it("gets more opaque as the score rises", () => {
     const alphas = [0, 0.2, 0.4, 0.6, 0.8, 1].map((v) => heatColor(v)[3]);
     expect([...alphas].sort((a, b) => a - b)).toEqual(alphas);
-  });
-});
-
-describe("samples", () => {
-  it("has unique ids, valid methods and a reference for each", () => {
-    expect(new Set(SAMPLES.map((s) => s.id)).size).toBe(SAMPLES.length);
-    SAMPLES.forEach((s) => {
-      expect(["fft", "gabor", "golden_template", "local_statistics"]).toContain(s.method);
-      expect(s.url).toBe(`/samples/${s.id}.png`);
-      expect(s.mask).toBe(`/samples/${s.id}.mask.png`);
-      expect(s.reference).toMatch(/^\/samples\/ref-.+\.png$/);
-    });
-    expect(SAMPLES.some((s) => !s.defective)).toBe(true);
-    expect(SAMPLES.some((s) => s.defective)).toBe(true);
   });
 });

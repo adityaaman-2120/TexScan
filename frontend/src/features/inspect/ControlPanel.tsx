@@ -10,7 +10,6 @@ import { Slider } from "@/components/ui/slider";
 import { BitPlanes } from "./BitPlanes";
 import { Dropzone } from "./Dropzone";
 import { effectiveValue, sliderDefs, toOdd } from "./config";
-import { SampleGallery } from "./SampleGallery";
 import type { InspectSession } from "./useInspectSession";
 
 const METHOD_HELP: Record<Method, string> = {
@@ -73,10 +72,6 @@ export function ControlPanel({ session }: { session: InspectSession }) {
       {session.file && (
         <Card className="gap-3 p-3 py-3">
           <Dropzone compact onFile={session.acceptFile} />
-          <div className="px-1">
-            <div className="mb-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Try a sample</div>
-            <SampleGallery variant="mini" onPick={session.loadSample} activeId={session.sample?.id} />
-          </div>
         </Card>
       )}
 

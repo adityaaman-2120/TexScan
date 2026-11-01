@@ -8,9 +8,8 @@ backend/*.db
 # node
 node_modules/
 frontend/dist/
-# data: keep only samples/
+# data: runtime files only (database, stored images, results)
 data/*
-!data/samples/
 !data/.gitkeep
 # misc
 .env

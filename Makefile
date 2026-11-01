@@ -6,7 +6,7 @@ else
 endif
 PY := $(VENV_BIN)/python
 
-.PHONY: setup dev dev-lan backend frontend test eval eval-demo seed api-types
+.PHONY: setup dev dev-lan backend frontend test eval eval-demo api-types
 
 setup:
 	python3.11 -m venv backend/.venv || py -3.11 -m venv backend/.venv
@@ -38,10 +38,6 @@ eval:
 # smoke test of the harness on a generated toy dataset (NOT a benchmark)
 eval-demo:
 	cd backend && ../$(PY) -m texscan.eval --synthetic
-
-# load 20 synthetic inspections and a profile so the dashboard is not empty (add FORCE=1 to replace earlier demo data)
-seed:
-	$(PY) backend/scripts/seed_demo.py $(if $(FORCE),--force)
 
 # regenerate the typed frontend API client from the FastAPI OpenAPI schema
 api-types:

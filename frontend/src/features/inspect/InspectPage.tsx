@@ -15,7 +15,6 @@ import { ControlPanel } from "./ControlPanel";
 import { DefectTable } from "./DefectTable";
 import { Dropzone } from "./Dropzone";
 import { HistogramChart, TimingChart } from "./Charts";
-import { SampleGallery } from "./SampleGallery";
 import { heatKey, residualKey } from "./stageInfo";
 import { useInspectSession } from "./useInspectSession";
 import { VerdictHeader } from "./VerdictHeader";
@@ -128,25 +127,14 @@ export function InspectPage() {
 
         <div className="order-1 min-w-0 space-y-5 lg:order-2">
           {!session.file ? (
-            <>
-              <Dropzone onFile={session.acceptFile} />
-              <section aria-labelledby="samples-heading">
-                <h2 id="samples-heading" className="mb-3 text-sm font-semibold">
-                  Or try a sample
-                </h2>
-                <SampleGallery onPick={session.loadSample} />
-                <p className="mt-3 text-xs text-muted-foreground">
-                  Samples are synthetic textures with planted defects. Each opens with the method that shows it best; switch methods on the left to compare.
-                </p>
-              </section>
-            </>
+            <Dropzone onFile={session.acceptFile} />
           ) : (
             <Stagger className="space-y-5" key={session.file.name + session.file.size}>
               <StaggerItem>
                 <Card className="py-5">
                   <CardContent>
                     <VerdictHeader result={result} running={running} onXRay={() => setXray(true)} />
-                    {result?.decision === "FAIL" && profileId === null && !session.sample && (
+                    {result?.decision === "FAIL" && profileId === null && (
                       <p role="note" className="mt-4 flex items-start gap-2 rounded-lg border border-warning/30 bg-warning/5 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
                         <TriangleAlert className="mt-0.5 size-3.5 shrink-0 text-warning" />
                         <span>
