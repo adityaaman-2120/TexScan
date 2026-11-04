@@ -22,6 +22,7 @@ export const DEFAULT_VALUES: Record<string, number | string> = {
   "gabor.k": 10,
   "local_stats.k": 4,
   "local_stats.window": 31,
+  "colour.k": 6,
   "morphology.min_area": 50,
   "morphology.kernel_size": 3,
   "notch.sigma": 3,
@@ -40,6 +41,9 @@ export function sliderDefs(method: Method): SliderDef[] {
   return [
     { path: "denoise.ksize", label: "Denoise kernel", hint: "Window of the median / Gaussian filter (odd)", min: 1, max: 15, step: 2, unit: "px" },
     threshold,
+    ...(method === "golden_template"
+      ? []
+      : [{ path: "colour.k", label: "Colour threshold", hint: "How far a colour must differ from the cloth around it (robust deviations). Lower finds fainter stains", min: 3, max: 30, step: 0.5 } satisfies SliderDef]),
     { path: "center_fraction", label: "Inspect area", hint: "Middle part of the picture that is judged (1 = all). Lower it to skip the edge of the cloth", min: 0.3, max: 1, step: 0.1 },
     { path: "morphology.min_area", label: "Min area", hint: "Smaller regions are discarded", min: 1, max: 2000, step: 1, unit: "px" },
     { path: "morphology.kernel_size", label: "Cleanup kernel", hint: "Opening / closing structuring element (odd)", min: 1, max: 11, step: 2, unit: "px" },

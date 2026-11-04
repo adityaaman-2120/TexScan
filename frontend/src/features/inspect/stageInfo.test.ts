@@ -25,7 +25,7 @@ const ALL_STAGES = [
   "gabor_energy", "anomaly_score",
   "aligned_reference", "difference",
   "local_mean", "local_variance",
-  "mask_raw", "mask_clean", "overlay",
+  "mask_raw", "mask_colour", "mask_clean", "overlay",
 ]; // fmt: skip
 
 describe("stageInfo", () => {

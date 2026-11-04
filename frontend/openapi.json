@@ -3051,6 +3051,36 @@
         "title": "CategoryMetrics",
         "description": "Metrics of one method on one category, as written by `python -m texscan.eval`."
       },
+      "ColourConfig": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled",
+            "default": true
+          },
+          "k": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "K",
+            "default": 6.0
+          },
+          "floor": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Floor",
+            "default": 12.0
+          },
+          "sigma": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Sigma",
+            "default": 2.5
+          }
+        },
+        "type": "object",
+        "title": "ColourConfig",
+        "description": "The colour cue, run next to the texture detector: flags regions whose colour differs from the cloth around them."
+      },
       "DayCount": {
         "properties": {
           "date": {
@@ -3895,6 +3925,15 @@
               "window": 31,
               "k": 4.0,
               "rel_floor": 0.05
+            }
+          },
+          "colour": {
+            "$ref": "#/components/schemas/ColourConfig",
+            "default": {
+              "enabled": true,
+              "k": 6.0,
+              "floor": 12.0,
+              "sigma": 2.5
             }
           },
           "denoise": {

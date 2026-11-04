@@ -19,6 +19,7 @@ const FACTORS: Record<Sensitivity, { threshold: number; minArea: number }> = {
 };
 
 const MIN_AREA_PATH = "morphology.min_area";
+const COLOUR_PATH = "colour.k";
 
 const clamp = (v: number, lo: number, hi: number): number => Math.min(hi, Math.max(lo, v));
 const round1 = (v: number): number => Math.round(v * 10) / 10;
@@ -34,10 +35,12 @@ export function sensitivityOverrides(level: Sensitivity, method: Method, baseCon
   const defs = sliderDefs(method);
   const threshold = defs.find((d) => d.label === "Threshold");
   const minArea = defs.find((d) => d.path === MIN_AREA_PATH);
+  const colour = defs.find((d) => d.path === COLOUR_PATH); // the colour check moves with the same preset, so stains are as sensitive as texture
   const base = (path: string): number => Number(getPath(baseConfig, path) ?? DEFAULT_VALUES[path] ?? 0);
 
   const out: Overrides = {};
   if (threshold) out[threshold.path] = round1(clamp(base(threshold.path) * factor.threshold, threshold.min, threshold.max));
+  if (colour) out[colour.path] = round1(clamp(base(colour.path) * factor.threshold, colour.min, colour.max));
   if (minArea) out[minArea.path] = Math.round(clamp(base(minArea.path) * factor.minArea, minArea.min, minArea.max));
   return out;
 }

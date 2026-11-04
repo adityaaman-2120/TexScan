@@ -139,6 +139,13 @@ export function stageInfo(name: string, c: Config): StageInfo {
       return { title: "Local variance", explain: "How much the brightness varies inside each window (shown on a log scale).", formula: "σ² = box_w(I²) − μ²", timing: "local_mean_var" };
     case "mask_raw":
       return { title: "Raw defect mask", ...rawMaskInfo(c), timing: c.method === "gabor" || c.method === "local_statistics" ? "flag_outliers" : "residual_to_mask" };
+    case "mask_colour":
+      return {
+        title: "Colour mask",
+        explain: "Regions whose colour differs from the cloth around them: a stain, a burn, or a hole showing what is underneath. Brightness counts little, so stripes do not. It is joined with the texture mask before cleanup.",
+        formula: "d = ‖(0.25·ΔL, Δa, Δb)‖ > median + max(k·MAD, floor)",
+        timing: "colour_mask",
+      };
     case "mask_clean":
       return {
         title: "Cleaned mask",

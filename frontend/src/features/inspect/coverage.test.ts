@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { coverageOf, SHRUNK_AT } from "./coverage";
+import { coverageOf, profileNotes, SHRUNK_AT } from "./coverage";
 
 const cfg = (over: Partial<{ center_fraction: number; max_side: number; min_area: number }> = {}) => ({
   center_fraction: over.center_fraction ?? 1,
@@ -41,5 +41,23 @@ describe("coverageOf", () => {
 
   it("copes with an empty picture", () => {
     expect(coverageOf(cfg(), 0, 0).smallest).toBeNull();
+  });
+});
+
+describe("profileNotes", () => {
+  it("says nothing about a profile that checks the whole picture at full size", () => {
+    expect(profileNotes({ center_fraction: 1, max_side: 1024 })).toEqual([]);
+  });
+
+  it("warns that a profile skips the edges, with the share it keeps", () => {
+    const notes = profileNotes({ center_fraction: 0.6, max_side: 1024 });
+    expect(notes).toHaveLength(1);
+    expect(notes[0]).toContain("middle 60%");
+    expect(notes[0]).toContain("edge");
+  });
+
+  it("warns that a profile shrinks pictures, and lists both when both apply (a profile made in Live)", () => {
+    expect(profileNotes({ center_fraction: 1, max_side: SHRUNK_AT })[0]).toContain(`${SHRUNK_AT} px`);
+    expect(profileNotes({ center_fraction: 0.6, max_side: 320 })).toHaveLength(2);
   });
 });

@@ -35,3 +35,11 @@ export function coverageOf(config: CoverageInput, checkedWidth: number, checkedH
     limits,
   };
 }
+
+/** What a profile does to every picture before judging it, for the place where it is chosen. Empty when it checks the whole picture at full size. */
+export function profileNotes(config: Pick<CoverageInput, "center_fraction" | "max_side">): string[] {
+  const notes: string[] = [];
+  if (config.center_fraction < 1 - 1e-9) notes.push(`Checks only the middle ${Math.round(config.center_fraction * 100)}% of each picture. The edges are skipped, so a defect near the edge is not seen.`);
+  if (config.max_side <= SHRUNK_AT) notes.push(`Shrinks each picture to ${config.max_side} px, so small defects get smaller.`);
+  return notes;
+}

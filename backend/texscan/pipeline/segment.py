@@ -44,20 +44,36 @@ def residual_to_mask(
     return magnitude, mask
 
 
-def remove_small_components(mask: Image, min_area: int) -> Image:
-    """Label 8-connected components and keep only those with area >= min_area pixels."""
-    count, labels, stats, _ = cv2.connectedComponentsWithStats(mask, connectivity=8)
-    keep = np.zeros(count, dtype=bool)
-    keep[1:] = stats[1:, cv2.CC_STAT_AREA] >= min_area
+def group_labels(mask: Image, distance: int) -> np.ndarray:
+    """Label the mask so that pieces closer than `distance` px share a label (0 = background).
+
+    The mask is dilated by distance / 2, the 8-connected components of that are numbered, and each mask pixel takes
+    the number of the component it lies in. With distance < 2 this is plain 8-connected labelling.
+    """
+    on = mask > 0
+    if distance < 2:
+        return cv2.connectedComponents(on.astype(np.uint8), connectivity=8)[1]
+    size = distance + 1 - distance % 2  # odd, so the dilation grows by distance / 2 on each side
+    grouped = cv2.dilate(on.astype(np.uint8), cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (size, size)))
+    return np.where(on, cv2.connectedComponents(grouped, connectivity=8)[1], 0)
+
+
+def remove_small_components(mask: Image, min_area: int, merge_distance: int = 0) -> Image:
+    """Keep only the groups of components whose total area is >= min_area pixels (8-connected; see group_labels for merge_distance)."""
+    labels = group_labels(mask, merge_distance)
+    areas = np.bincount(labels.ravel())
+    keep = areas >= min_area
+    keep[0] = False
     return np.where(keep[labels], 255, 0).astype(np.uint8)
 
 
-def morphology_cleanup(mask: Image, kernel_size: int = 3, min_area: int = 50) -> Image:
+def morphology_cleanup(mask: Image, kernel_size: int = 3, min_area: int = 50, merge_fraction: float = 0.0) -> Image:
     """Opening (erode then dilate) removes specks; closing (dilate then erode) fills gaps.
 
-    Uses an elliptical structuring element, then drops components smaller than min_area.
+    Uses an elliptical structuring element, then drops groups smaller than min_area. Pieces closer than merge_fraction
+    of the longest side form one group, so the fragments of one defect count together instead of each being too small.
     """
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (kernel_size, kernel_size))
     opened = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
     closed = cv2.morphologyEx(opened, cv2.MORPH_CLOSE, kernel)
-    return remove_small_components(closed, min_area)
+    return remove_small_components(closed, min_area, round(merge_fraction * max(mask.shape[:2])))

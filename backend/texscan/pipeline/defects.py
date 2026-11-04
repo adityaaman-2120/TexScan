@@ -6,6 +6,7 @@ from skimage.measure import label, regionprops
 from skimage.measure._regionprops import RegionProperties
 
 from texscan.pipeline.measure import min_area_rect_size
+from texscan.pipeline.segment import group_labels
 from texscan.pipeline.types import Defect, Image
 
 
@@ -49,13 +50,13 @@ def _describe(index: int, region: RegionProperties, contrast: float | None) -> D
     )
 
 
-def extract_defects(mask: Image, gray: Image | None = None, ring: int = 7) -> list[Defect]:
-    """Label 8-connected components, then describe each from its pixel set.
+def extract_defects(mask: Image, gray: Image | None = None, ring: int = 7, merge_distance: int = 0) -> list[Defect]:
+    """Label 8-connected components (pieces closer than merge_distance px share a label), then describe each from its pixel set.
 
     Orientation is the principal axis of the covariance matrix: theta = 0.5 * atan2(2 Cxy, Cxx - Cyy).
     With a gray image, also measures contrast against a `ring`-pixel surround.
     """
-    labels = label(mask > 0, connectivity=2)
+    labels = group_labels(mask, merge_distance) if merge_distance >= 2 else label(mask > 0, connectivity=2)
     return [
         _describe(i, r, None if gray is None else _contrast(gray, labels, r, ring))
         for i, r in enumerate(regionprops(labels), start=1)

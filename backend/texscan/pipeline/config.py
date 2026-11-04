@@ -45,6 +45,7 @@ class ThresholdConfig(BaseModel):
 class MorphConfig(BaseModel):
     kernel_size: int = Field(3, ge=1)
     min_area: int = Field(50, ge=1)
+    merge_fraction: float = Field(0.02, ge=0, le=0.2)  # pieces closer than this share of the longest side count as one defect
 
 
 class GaborConfig(BaseModel):
@@ -67,6 +68,15 @@ class LocalStatsConfig(BaseModel):
     rel_floor: float = Field(0.05, ge=0)
 
 
+class ColourConfig(BaseModel):
+    """The colour cue, run next to the texture detector: flags regions whose colour differs from the cloth around them."""
+
+    enabled: bool = True
+    k: float = Field(6.0, gt=0)  # flag colour distance beyond median + k * MAD
+    floor: float = Field(12.0, ge=0)  # ...but never less than this absolute colour distance (Lab units)
+    sigma: float = Field(2.5, ge=0)  # smoothing, so single threads of another colour do not count
+
+
 class PipelineConfig(BaseModel):
     """FAIL when defect count > max_defects or defect area % > max_area_percent.
 
@@ -78,6 +88,7 @@ class PipelineConfig(BaseModel):
     gabor: GaborConfig = GaborConfig()
     template: TemplateConfig = TemplateConfig()
     local_stats: LocalStatsConfig = LocalStatsConfig()
+    colour: ColourConfig = ColourConfig()
     denoise: DenoiseConfig = DenoiseConfig()
     enhance: EnhanceConfig = EnhanceConfig()
     peaks: PeakConfig = PeakConfig()

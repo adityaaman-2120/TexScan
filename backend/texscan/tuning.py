@@ -9,6 +9,7 @@ import numpy as np
 from pydantic import BaseModel
 
 from texscan.pipeline import PipelineConfig, PipelineResult, run_pipeline
+from texscan.pipeline.colour import colour_k_needed
 from texscan.pipeline.detectors import score_margin
 from texscan.pipeline.types import Image
 
@@ -21,6 +22,11 @@ _SAMPLES_PER_IMAGE = 200_000
 MIN_AREA_SHARE = 0.0015
 THRESHOLD_STEP = 1.1
 MAX_THRESHOLD_STEPS = 5
+
+# The colour cue must stay silent on the good images. Its cut-off is raised to clear them (with this margin); past
+# COLOUR_MAX_K the cloth's own colours vary too much for it to tell defects apart, so it is switched off.
+COLOUR_MARGIN = 1.15
+COLOUR_MAX_K = 25.0
 
 # method -> (config section, field, lowest sane value). The tuned field is the score cut-off of that method.
 TUNABLE: dict[str, tuple[str, str, float]] = {
@@ -58,6 +64,19 @@ class TuneReport(BaseModel):
 
 def _replace(cfg: PipelineConfig, section: str, **fields: float) -> PipelineConfig:
     return cfg.model_copy(update={section: getattr(cfg, section).model_copy(update=fields)})
+
+
+def _tune_colour(cfg: PipelineConfig, results: list[PipelineResult]) -> tuple[PipelineConfig, str | None]:
+    """Raise the colour cue's k until it is silent on every good image, or turn it off if that takes more than COLOUR_MAX_K."""
+    readings = [r.colour_score for r in results]
+    if not cfg.colour.enabled or any(s is None for s in readings):
+        return cfg, None
+    needed = max(colour_k_needed(s) for s in readings if s is not None) * COLOUR_MARGIN
+    if needed > COLOUR_MAX_K:
+        return _replace(cfg, "colour", enabled=False), "the colour check was turned off because the colours of this cloth vary too much to tell a stain apart; stains that do not change the texture may be missed"
+    if needed > cfg.colour.k:
+        return _replace(cfg, "colour", k=round(needed, 2)), "the colour check was made less sensitive because this cloth's colours vary; faint stains may be missed"
+    return cfg, None
 
 
 def _interior_sample(result: PipelineResult, cfg: PipelineConfig, rng: np.random.Generator) -> np.ndarray:
@@ -130,7 +149,9 @@ def auto_tune(
     section, field, floor = TUNABLE[cfg.method]
 
     rng = np.random.default_rng(0)
-    scores = np.concatenate([_interior_sample(run_pipeline(img, cfg), cfg, rng) for img in images])
+    first = [run_pipeline(img, cfg) for img in images]
+    scores = np.concatenate([_interior_sample(r, cfg, rng) for r in first])
+    cfg, colour_note = _tune_colour(cfg, first)
     threshold = max(float(np.percentile(scores, quantile)) * margin, floor)
 
     raised = 0
@@ -146,7 +167,7 @@ def auto_tune(
         raised += 1
     tuned = _replace(tuned, "morphology", min_area=min_area)
 
-    warnings = []
+    warnings = [colour_note] if colour_note else []
     if raised:
         warnings.append(f"the cut-off was raised {raised} time{'s' if raised > 1 else ''} because this cloth's texture leaves many false spots; very faint defects may be missed")
     if min_area > 0.001 * image_size:

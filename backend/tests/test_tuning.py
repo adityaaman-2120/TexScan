@@ -85,7 +85,9 @@ def test_clean_images_warn_that_the_threshold_hit_its_floor() -> None:
 def test_large_min_area_is_flagged() -> None:
     very_noisy = [make_noisy_material(s, noise=25.0) for s in range(6)]
     _, report = auto_tune(very_noisy, _cfg())
-    assert report.min_area > 0.001 * 256 * 256 and any("min_area" in w for w in report.warnings)
+    large = report.min_area > 0.001 * 256 * 256 and any("min_area" in w for w in report.warnings)
+    raised = any("cut-off was raised" in w for w in report.warnings)  # fragments now count together, so the cut-off is raised first
+    assert large or raised
 
 
 def test_rejects_wrong_image_counts_and_unsupported_method() -> None:
@@ -114,3 +116,35 @@ def test_cutoff_is_raised_before_min_area_swallows_small_defects(monkeypatch: py
 def test_cutoff_is_not_raised_when_the_leftovers_are_already_small() -> None:
     _, report = auto_tune([make_texture("sinusoid", seed=s) for s in range(6)], _cfg("local_statistics"))
     assert not any("cut-off was raised" in w for w in report.warnings)
+
+
+def _coloured_cloth(seed: int, stripes: bool) -> "np.ndarray":
+    """Pale cloth; with stripes=True a few vertical bands of another hue (same gray level) at seed-dependent places."""
+    import numpy as np
+
+    rng = np.random.default_rng(seed)
+    img = np.empty((256, 256, 3), np.float32)
+    img[:] = (200, 185, 160)
+    if stripes:
+        for _ in range(4):
+            x = int(rng.integers(10, 230))
+            img[:, x : x + int(rng.integers(8, 20))] = (135, 158, 240)
+    return np.clip(img + rng.normal(0, 2, (256, 256, 1)), 0, 255).astype(np.uint8)
+
+
+def test_colour_check_is_relaxed_or_off_on_a_cloth_whose_colours_vary() -> None:
+    good = [_coloured_cloth(s, stripes=True) for s in range(6)]
+    base = PipelineConfig.model_validate({"method": "gabor", "max_side": 256})
+    assert any(run_pipeline(g, base).decision == "FAIL" for g in good)  # the defaults call this cloth defective
+    tuned, report = auto_tune(good, base)
+    assert (not tuned.colour.enabled) or tuned.colour.k > base.colour.k
+    assert any("colour check" in w for w in report.warnings)
+    assert all(run_pipeline(g, tuned).decision == "PASS" for g in good)
+
+
+def test_colour_check_is_left_alone_on_a_plain_cloth() -> None:
+    good = [_coloured_cloth(s, stripes=False) for s in range(6)]
+    base = PipelineConfig.model_validate({"method": "gabor", "max_side": 256})
+    tuned, report = auto_tune(good, base)
+    assert tuned.colour == base.colour
+    assert not any("colour check" in w for w in report.warnings)

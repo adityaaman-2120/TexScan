@@ -16,6 +16,6 @@ def test_cli_inspect_saves_stages_and_summary(tmp_path: Path, capsys) -> None:  
 
     assert "FAIL" in capsys.readouterr().out
     pngs = sorted(p.name for p in out.glob("*.png"))
-    assert len(pngs) == 12 and pngs[0] == "00_original.png" and pngs[-1] == "11_overlay.png"
+    assert len(pngs) == 13 and pngs[0] == "00_original.png" and pngs[-1] == "12_overlay.png"
     summary = json.loads((out / "result.json").read_text())
     assert summary["decision"] == "FAIL" and summary["defects"]

@@ -16,7 +16,7 @@ export default defineConfig(({ mode }) => ({
     host: mode === "lan" ? true : undefined,
     proxy: {
       "/api": {
-        target: process.env.VITE_API_TARGET ?? "http://localhost:8000",
+        target: process.env.VITE_API_TARGET ?? "http://localhost:8765",
         ws: true,
         rewrite: (p) => p.replace(/^\/api/, ""),
       },

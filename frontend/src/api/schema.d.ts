@@ -1116,6 +1116,32 @@ export interface components {
             /** Seconds Per Image */
             seconds_per_image: number;
         };
+        /**
+         * ColourConfig
+         * @description The colour cue, run next to the texture detector: flags regions whose colour differs from the cloth around them.
+         */
+        ColourConfig: {
+            /**
+             * Enabled
+             * @default true
+             */
+            enabled: boolean;
+            /**
+             * K
+             * @default 6
+             */
+            k: number;
+            /**
+             * Floor
+             * @default 12
+             */
+            floor: number;
+            /**
+             * Sigma
+             * @default 2.5
+             */
+            sigma: number;
+        };
         /** DayCount */
         DayCount: {
             /**
@@ -1503,6 +1529,15 @@ export interface components {
              *     }
              */
             local_stats: components["schemas"]["LocalStatsConfig"];
+            /**
+             * @default {
+             *       "enabled": true,
+             *       "k": 6,
+             *       "floor": 12,
+             *       "sigma": 2.5
+             *     }
+             */
+            colour: components["schemas"]["ColourConfig"];
             /**
              * @default {
              *       "method": "median",

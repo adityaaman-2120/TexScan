@@ -14,7 +14,7 @@ setup:
 	cd frontend && npm install
 
 backend:
-	cd backend && ../$(PY) -m uvicorn texscan.main:app --reload --port 8000
+	cd backend && ../$(PY) -m uvicorn texscan.main:app --reload --port 8765
 
 frontend:
 	cd frontend && npm run dev

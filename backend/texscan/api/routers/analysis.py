@@ -107,7 +107,7 @@ def spectrum_apply(
     magnitude, raw = residual_to_mask(filtered, **cfg.threshold.model_dump())
     clean = morphology_cleanup(raw, **cfg.morphology.model_dump())
     gray = load_and_normalize(upload, cfg.max_side)
-    defects = classify_defects(extract_defects(clean, gray))
+    defects = classify_defects(extract_defects(clean, gray, 7, round(cfg.morphology.merge_fraction * max(gray.shape))))
     percent = 100.0 * float((clean > 0).sum()) / clean.size
     overlay = edges_overlay(resize_longest(upload, cfg.max_side), clean)
     return SpectrumApplyOut(

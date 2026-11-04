@@ -5,6 +5,7 @@ import numpy as np
 
 from texscan.pipeline.borders import center_crop, trim_borders
 from texscan.pipeline.classify import classify_defects
+from texscan.pipeline.colour import colour_deviation, colour_mask
 from texscan.pipeline.config import PipelineConfig
 from texscan.pipeline.defects import extract_defects
 from texscan.pipeline.denoise import denoise
@@ -28,6 +29,7 @@ class PipelineResult:
     histograms: dict[str, Histogram]
     peaks: Peaks  # (N, 2); empty unless method == "fft"
     score_map: FloatImage  # continuous anomaly score before thresholding (used by auto-tune)
+    colour_score: FloatImage | None = None  # colour distance from the local cloth colour; None when the colour cue did not run
     crop: tuple[int, int, int, int] = (0, 0, 0, 0)  # (x0, y0, x1, y1) of the input that was inspected; zeros = whole image (not trimmed)
 
 
@@ -61,6 +63,16 @@ def _crop_input(rec: Recorder, image: Image, cfg: PipelineConfig) -> tuple[Image
     return image, ((x0, y0, x1, y1) if (x0, y0, x1, y1) != (0, 0, w, h) else (0, 0, 0, 0))
 
 
+def _colour_cue(rec: Recorder, original: Image, cfg: PipelineConfig) -> FloatImage | None:
+    """Run the colour cue when it is on and the picture has colour; the template method compares against a reference instead."""
+    c = cfg.colour
+    if not c.enabled or original.ndim != 3 or cfg.method == "golden_template":
+        return None
+    deviation = rec.step("colour_deviation", colour_deviation, original, c.sigma)
+    rec.stages["mask_colour"] = rec.step("colour_mask", colour_mask, deviation, c.k, c.floor, cfg.threshold.border)
+    return deviation
+
+
 def run_pipeline(
     image: Image, config: PipelineConfig | None = None, reference: Image | None = None
 ) -> PipelineResult:
@@ -78,9 +90,12 @@ def run_pipeline(
     enhanced, histograms = _preprocess(rec, gray, cfg)
     ref = _prepare_reference(reference, cfg) if reference is not None else None
     detection = DETECTORS[cfg.method](rec, enhanced, cfg, ref)
-    mask = rec.step("morphology_cleanup", morphology_cleanup, detection.mask, **cfg.morphology.model_dump())
+    colour_score = _colour_cue(rec, original, cfg)
+    raw = detection.mask if colour_score is None else np.maximum(detection.mask, rec.stages["mask_colour"])
+    mask = rec.step("morphology_cleanup", morphology_cleanup, raw, **cfg.morphology.model_dump())
     rec.stages["mask_clean"] = mask
-    defects = rec.step("extract_defects", extract_defects, mask, gray)
+    merge = round(cfg.morphology.merge_fraction * max(gray.shape))
+    defects = rec.step("extract_defects", extract_defects, mask, gray, 7, merge)
     defects = rec.step("classify_defects", classify_defects, defects)
     if cfg.calibration is not None:
         scale = mm_per_working_pixel(cfg.calibration, full_shape, image.shape, gray.shape)
@@ -96,5 +111,6 @@ def run_pipeline(
         histograms=histograms,
         peaks=detection.peaks,
         score_map=detection.score,
+        colour_score=colour_score,
         crop=crop,
     )

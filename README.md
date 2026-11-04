@@ -110,6 +110,7 @@ The Pipeline X-Ray in the app steps through every one of these images with the e
 | Gabor | quadrature Gabor pairs at several orientations and wavelengths; per-channel robust outlier score | $g=e^{-(x'^2+0.25y'^2)/2\sigma^2}\cos(2\pi x'/\lambda+\psi)$ |
 | Local statistics | mean and variance in a sliding window via two box filters | $\mu=\mathrm{box}_w(I),\ \sigma^2=\mathrm{box}_w(I^2)-\mu^2$ |
 | Robust z-score | outlier-resistant standardisation used by Gabor and local statistics | $z=\dfrac{x-\operatorname{median}}{1.4826\cdot\mathrm{MAD}}$, flag $\lvert z\rvert>k$ |
+| Colour cue | BGR to Lab, distance from the local cloth colour (a large median of the picture), lightness weighted down so stripes do not count; flags stains, burns and holes that show another material, then joins with the texture mask | $d=\lVert(0.25\,\Delta L,\Delta a,\Delta b)\rVert>\operatorname{median}+\max(k\cdot1.4826\,\mathrm{MAD},\,\mathrm{floor})$ |
 | Template alignment | ORB keypoints, Hamming matching, RANSAC homography $p_{test}\sim Hp_{ref}$, warp the reference | difference $D=\lvert (T-\bar T)-(R-\bar R)\rvert$ |
 | Morphology | opening (erode, dilate) removes specks; closing (dilate, erode) fills gaps; small components dropped | elliptical structuring element |
 | Defect measures | 8-connected components: area, perimeter, bounding box, aspect ratio, solidity, orientation, contrast to the surrounding ring | $\theta=\tfrac12\operatorname{atan2}(2C_{xy},C_{xx}-C_{yy})$ |
@@ -165,10 +166,10 @@ Requirements: **Python 3.11**, **Node.js 20+** and npm. `make` is optional (on W
 ```bash
 git clone <this repo> && cd TexScan
 make setup        # backend venv + pip install -e backend[dev], then npm install in frontend/
-make dev          # backend on :8000 and frontend on :5173, one terminal
+make dev          # backend on :8765 and frontend on :5173, one terminal
 ```
 
-Open <http://localhost:5173> for the public landing page and <http://localhost:5173/app> for the app. API docs are at <http://localhost:8000/docs>.
+Open <http://localhost:5173> for the public landing page and <http://localhost:5173/app> for the app. API docs are at <http://localhost:8765/docs>.
 
 Without make (Windows PowerShell):
 ```powershell
@@ -263,7 +264,7 @@ Capture uses the same settings, so its verdict matches what was on screen.
 4. Accept the one-time certificate warning (iPhone Safari: Show Details, then visit this website; Android Chrome: Advanced, then Proceed).
 5. Tap **Start camera**. The rear camera is used by default.
 
-If the phone cannot connect, allow Node.js through Windows Defender Firewall for private networks. The backend stays on `localhost:8000`; the Vite proxy forwards API and WebSocket traffic.
+If the phone cannot connect, allow Node.js through Windows Defender Firewall for private networks. The backend stays on `localhost:8765`; the Vite proxy forwards API and WebSocket traffic.
 
 ### Batch, History, Dashboard, Profiles
 * **Batch**: drop a folder or many images; each is a tile that flips to its overlay with PASS / FAIL as the server finishes it (WebSocket progress with a polling fallback). More than 100 images run as consecutive batches. Summary, failed images, **Export CSV** (file names neutralised against spreadsheet formulas) and **Download report**.
@@ -316,7 +317,7 @@ Limits: the score is only as good as the defect lengths (see the accuracy note a
 * *Batch report*: summary tiles, defect-type breakdown, a table of every image and the overlays of the failed ones (first 60).
 
 ## API
-`make dev` serves it on <http://localhost:8000> (interactive docs at `/docs`). The Vite dev server proxies `/api/*`, WebSockets included. Stage image URLs look like `/files/<id>/overlay.png`.
+`make dev` serves it on <http://localhost:8765> (interactive docs at `/docs`). The Vite dev server proxies `/api/*`, WebSockets included. Stage image URLs look like `/files/<id>/overlay.png`.
 
 | Endpoint | Purpose |
 |---|---|
@@ -371,5 +372,6 @@ Frontend conventions: the API client is generated from the OpenAPI schema (never
 * There is no spatial-domain sharpening filter and no deblurring; restoration means notch-filtering a known periodic pattern.
 * Live inspection is about 5 fps at most and depends on the machine running the backend. Phone use needs HTTPS (`make dev-lan`).
 * **Small holes in coarse or piled cloth (terry towel, fleece) are not reliably found.** Tried on a photo of a worn towel with four holes: the texture methods find only the largest hole, the FFT method finds all four but flags dozens of other regions, and neither a black-hat spot test, a colour-channel test nor colour distance from the local cloth colour separated the small holes from the pile. These methods look for a break in a regular texture, so they work best on fabrics with an even weave filling the frame, close up, evenly lit, with a profile learned from good samples of that same fabric.
+* **The colour cue helps with stains and burns, not with every defect.** It runs next to the texture method (all but the golden template) and flags regions whose colour differs from the cloth around them, so a brown spot on pale cloth is found even though its texture is plain. It judges brightness only a quarter as much as hue, so light and dark stripes are not flagged, but a cloth with coloured stripes or a printed pattern can look defective to it. Making a profile from good samples of that cloth raises the colour cut-off (or turns the cue off, with a warning). One defect can still come out as several neighbouring boxes.
 * **A PASS only means nothing was found where it looked.** Each Inspect result says which part of the picture was checked (a profile made in Live inspects the middle 60% and shrinks the picture to 320 px) and warns on a PASS when that leaves blind spots.
 * A profile's minimum defect size is kept as the same share of the picture when the working size changes (it scales with the square of the size), and tuning raises the threshold a few steps before it lets the minimum size grow, so a textured cloth no longer hides small defects behind a large minimum.

@@ -24,6 +24,7 @@ Pages marked *(Engineering)* appear after turning on **Engineering mode** in Set
 | 11 | Image compression | [`texscan/robustness.py`](../backend/texscan/robustness.py) `jpeg_compress`, `jpeg_bytes`, `psnr`, `ssim_luma`, `sweep` | Robustness Lab *(Engineering)*: JPEG quality sweep | `tests/test_notch_ui_and_robustness.py`, `tests/test_research_pages.py` |
 | 12 | Morphology | [`pipeline/segment.py`](../backend/texscan/pipeline/segment.py) `morphology_cleanup` (opening, closing, elliptical element), `remove_small_components` (8-connected components), `residual_to_mask` (Otsu / adaptive threshold) | Pipeline X-Ray *(Engineering)*, "Raw defect mask" and "Cleaned mask" stages | `tests/test_pipeline_steps.py` |
 | 13 | Image restoration | [`pipeline/notch.py`](../backend/texscan/pipeline/notch.py) `notch_mask`, `notch_filter`, `symmetrize_mask`, `mask_to_filter`. Removes a known periodic pattern; **no deblurring or inverse filtering** | Spectrum Studio *(Engineering)*: draw a notch and see the residual | `tests/test_pipeline_steps.py`, `tests/test_notch_ui_and_robustness.py` |
+| 14 | Colour image processing | [`pipeline/colour.py`](../backend/texscan/pipeline/colour.py) `colour_deviation` (BGR to Lab, distance from the local cloth colour with a lightness weight), `colour_mask`, `colour_cutoff` | Inspect *(Engineering)*: the "Colour mask" stage and the "Colour threshold" slider | `tests/test_colour.py`, `tests/test_tuning.py` |
 
 ## Not on the syllabus list, but part of the same pipeline
 

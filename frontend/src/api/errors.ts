@@ -9,7 +9,7 @@ export class ApiError extends Error {
   }
 }
 
-export const NETWORK_MESSAGE = "Cannot reach the TexScan API. Is the backend running on port 8000?";
+export const NETWORK_MESSAGE = "Cannot reach the TexScan API. Is the backend running on port 8765?";
 
 /** The dev proxy (and any reverse proxy) answers these when the backend behind it is down. */
 const GATEWAY_STATUSES = new Set([502, 503, 504]);
