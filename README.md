@@ -11,6 +11,8 @@ Reports, Dashboard and Profiles, with one Sensitivity control (Low / Medium / Hi
 **Engineering mode** (Settings) adds an Engineering section for tuning and diagnosing the inspection engine: Pipeline X-Ray,
 Spectrum Studio, Method Arena, Robustness Lab and a Bit-Plane viewer, plus the full advanced panel on Inspect.
 
+**Project report** (course submission, AIML 3141): [docs/TexScan_Project_Report.docx](docs/TexScan_Project_Report.docx). Also see [docs/SYLLABUS_MAPPING.md](docs/SYLLABUS_MAPPING.md) and [docs/GRADING.md](docs/GRADING.md).
+
 Under the hood every stage is a small pure function with its formula in the docstring.
 [`docs/SYLLABUS_MAPPING.md`](docs/SYLLABUS_MAPPING.md) maps each image-processing lab syllabus item to the exact file and function that implements it.
 
